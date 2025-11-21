@@ -10,11 +10,11 @@ if command -v uptime &> /dev/null; then
     load_int=$(echo "$load" | cut -d. -f1)
     
     if [ "$load_int" -lt 1 ]; then
-        output+="CR:g"
-    elif [ "$load_int" -lt 2 ]; then
-        output+="CR:y"
+        output+="CR:#0d0"
+    elif [ "$load_int" -lt 4 ]; then
+        output+="CR:#dd0"
     else
-        output+="CR:r"
+        output+="CR:#d00"
     fi
     
     # Note: Using pipes allows spaces in text!
