@@ -1,0 +1,104 @@
+{
+    "command": {
+        "type": "entry",
+        "default": "echo \"CR:g\"",
+        "description": "Command to execute",
+        "tooltip": "Shell command to run periodically. Elements: CR:color (circle), BAR:min-max=val:bg:fg (bar), TXT:text (label). Separate with spaces OR pipes (|) to allow spaces in text."
+    },
+    "update-interval": {
+        "type": "spinbutton",
+        "default": 60,
+        "min": 1,
+        "max": 3600,
+        "step": 1,
+        "description": "Update interval (seconds)",
+        "tooltip": "How often to execute the command (1-3600 seconds)"
+    },
+    "chart-width": {
+        "type": "spinbutton",
+        "default": 200,
+        "min": 20,
+        "max": 600,
+        "step": 10,
+        "description": "Chart width (pixels)",
+        "tooltip": "Width of the chart display in pixels. Height automatically matches panel height. Increase width if not all elements are visible."
+    },
+    "bar-width": {
+        "type": "spinbutton",
+        "default": 16,
+        "min": 8,
+        "max": 40,
+        "step": 2,
+        "description": "Bar width (pixels)",
+        "tooltip": "Width of vertical bars in pixels"
+    },
+    "chart-area-transparency": {
+        "type": "scale",
+        "default": 0.3,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1,
+        "description": "Chart background transparency",
+        "tooltip": "Controls the transparency of the chart background area (0.0 = fully transparent, 1.0 = fully opaque)"
+    },
+    "font-family": {
+        "type": "combobox",
+        "default": "Sans",
+        "description": "Font family",
+        "tooltip": "Font for text labels. Use emoji fonts (Noto Color Emoji, Symbola) to display emojis like ✅ ❌ 🟢",
+        "options": {
+            "Sans": "Sans (default)",
+            "Noto Color Emoji": "Noto Color Emoji (✅ emojis, full color)",
+            "Symbola": "Symbola (✅ emojis, symbols)",
+            "Noto Sans Symbols": "Noto Sans Symbols (symbols)",
+            "Noto Sans Symbols2": "Noto Sans Symbols2 (symbols)",
+            "Serif": "Serif",
+            "Monospace": "Monospace",
+            "Ubuntu": "Ubuntu",
+            "Ubuntu Mono": "Ubuntu Mono",
+            "DejaVu Sans": "DejaVu Sans",
+            "DejaVu Sans Mono": "DejaVu Sans Mono",
+            "DejaVu Serif": "DejaVu Serif",
+            "Liberation Sans": "Liberation Sans",
+            "Liberation Mono": "Liberation Mono",
+            "Liberation Serif": "Liberation Serif",
+            "Noto Sans": "Noto Sans",
+            "Noto Mono": "Noto Mono",
+            "Noto Serif": "Noto Serif",
+            "Roboto": "Roboto",
+            "Cascadia Code": "Cascadia Code",
+            "Cascadia Mono": "Cascadia Mono",
+            "Cantarell": "Cantarell",
+            "FreeSans": "FreeSans",
+            "FreeMono": "FreeMono",
+            "FreeSerif": "FreeSerif"
+        }
+    },
+    "font-size": {
+        "type": "spinbutton",
+        "default": 10,
+        "min": 6,
+        "max": 20,
+        "step": 1,
+        "description": "Font size for text",
+        "tooltip": "Font size for text labels (6-20 pixels)"
+    },
+    "font-color": {
+        "type": "colorchooser",
+        "default": "rgba(255, 255, 255, 1.0)",
+        "description": "Font color",
+        "tooltip": "Color for text labels"
+    },
+    "enable-font-shadow": {
+        "type": "checkbox",
+        "default": true,
+        "description": "Enable font shadow",
+        "tooltip": "Draw a shadow under text for better readability"
+    },
+    "font-shadow-color": {
+        "type": "colorchooser",
+        "default": "rgba(0, 0, 0, 0.8)",
+        "description": "Font shadow color",
+        "tooltip": "Color for the text shadow"
+    }
+}
