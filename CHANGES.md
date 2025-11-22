@@ -60,6 +60,13 @@ Complete rewrite of the applet from stock price monitor to versatile command-bas
 - **Bar length:** Full panel height - 2px (spans entire height)
 - **Use case:** Comprehensive system monitoring in limited space
 
+#### 9. Overflow Indicator
+- **Added:** Visual indicator when elements don't fit
+- **Display:** "»" symbol shown at the end when elements are hidden
+- **Benefit:** Clear feedback that width needs to be increased
+- **Style:** Semi-transparent to distinguish from regular content
+- **Works in:** Both 1-line and 2-line modes
+
 ### Bug Fixes
 
 #### Issue #1: Screen Not Refreshing

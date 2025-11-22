@@ -357,6 +357,8 @@ CmdChartApplet.prototype = {
         let spacing = 4;
         let currentX = spacing;
         let drawnElements = 0;
+        let overflowIndicatorWidth = 20; // Reserve space for "..." indicator
+        let hasOverflow = false;
 
         for (let i = 0; i < this.chartElements.length; i++) {
             let element = this.chartElements[i];
@@ -367,8 +369,9 @@ CmdChartApplet.prototype = {
                 let centerX = currentX + radius;
                 let centerY = height / 2;
 
-                if (centerX + radius > width) {
+                if (centerX + radius + overflowIndicatorWidth > width) {
                     global.log("CMD Chart Applet: Out of space for circle at element " + i + "/" + this.chartElements.length);
+                    hasOverflow = true;
                     break; // Out of space
                 }
 
@@ -387,8 +390,9 @@ CmdChartApplet.prototype = {
                 let barX = currentX;
                 let barY = 2;
 
-                if (barX + barWidth > width) {
+                if (barX + barWidth + overflowIndicatorWidth > width) {
                     global.log("CMD Chart Applet: Out of space for bar at element " + i + "/" + this.chartElements.length);
+                    hasOverflow = true;
                     break; // Out of space
                 }
 
@@ -445,8 +449,9 @@ CmdChartApplet.prototype = {
                 let textX = currentX;
                 let textY = height / 2 + textHeight / 2;
 
-                if (textX + textWidth > width) {
+                if (textX + textWidth + overflowIndicatorWidth > width) {
                     global.log("CMD Chart Applet: Out of space for text '" + element.text + "' at element " + i + "/" + this.chartElements.length);
+                    hasOverflow = true;
                     break; // Out of space
                 }
 
@@ -462,6 +467,28 @@ CmdChartApplet.prototype = {
         if (drawnElements < this.chartElements.length) {
             global.log("CMD Chart Applet: WARNING - Not all elements fit! Increase chart width in settings.");
         }
+        
+        // Draw overflow indicator if not all elements fit
+        if (hasOverflow && currentX < width) {
+            this.drawOverflowIndicator(cr, currentX, width, height);
+        }
+    },
+
+    drawOverflowIndicator: function(cr, x, width, height) {
+        // Draw "»" symbol to indicate more elements are hidden
+        let fontSize = this.fontSize || 10;
+        cr.selectFontFace("Sans", Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD);
+        cr.setFontSize(fontSize + 2);
+        
+        let indicator = "»";
+        let textY = height / 2 + fontSize / 2;
+        let textX = Math.min(x + 4, width - 15);
+        
+        // Draw with slight transparency to show it's an indicator
+        let fontColor = this.parseRGBAColor(this.fontColor || "rgba(255, 255, 255, 1.0)");
+        cr.setSourceRGBA(fontColor.r, fontColor.g, fontColor.b, 0.6);
+        cr.moveTo(textX, textY);
+        cr.showText(indicator);
     },
 
     drawTwoLineChart: function(cr, width, height) {
@@ -487,6 +514,8 @@ CmdChartApplet.prototype = {
         // yOffset - vertical offset for this line
         let currentX = spacing;
         let drawnElements = 0;
+        let overflowIndicatorWidth = 20; // Reserve space for "»" indicator
+        let hasOverflow = false;
         
         for (let i = 0; i < elements.length; i++) {
             let element = elements[i];
@@ -497,8 +526,9 @@ CmdChartApplet.prototype = {
                 let centerX = currentX + radius;
                 let centerY = yOffset + lineHeight / 2;
                 
-                if (centerX + radius > width) {
+                if (centerX + radius + overflowIndicatorWidth > width) {
                     global.log("CMD Chart Applet: Out of space for circle");
+                    hasOverflow = true;
                     break;
                 }
                 
@@ -526,8 +556,9 @@ CmdChartApplet.prototype = {
                     }
                     let barLength = normalizedValue * maxBarLength;
                     
-                    if (barX + maxBarLength > width) {
+                    if (barX + maxBarLength + overflowIndicatorWidth > width) {
                         global.log("CMD Chart Applet: Out of space for horizontal bar");
+                        hasOverflow = true;
                         break;
                     }
                     
@@ -578,8 +609,9 @@ CmdChartApplet.prototype = {
                 let textX = currentX;
                 let textY = yOffset + lineHeight / 2 + textHeight / 2;
                 
-                if (textX + textWidth > width) {
+                if (textX + textWidth + overflowIndicatorWidth > width) {
                     global.log("CMD Chart Applet: Out of space for text");
+                    hasOverflow = true;
                     break;
                 }
                 
@@ -588,6 +620,14 @@ CmdChartApplet.prototype = {
                 currentX = textX + textWidth + spacing;
                 drawnElements++;
             }
+        }
+        
+        // Draw overflow indicator if not all elements fit
+        if (hasOverflow && currentX < width) {
+            cr.save();
+            cr.translate(0, yOffset);
+            this.drawOverflowIndicator(cr, currentX, width, lineHeight);
+            cr.restore();
         }
         
         global.log("CMD Chart Applet: Drew " + drawnElements + " of " + elements.length + " elements in line");

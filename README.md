@@ -42,7 +42,7 @@ cp -r cmd-chart-applet@cinnamon ~/.local/share/cinnamon/applets/
 |---------|---------|-------------|
 | **Command** | `echo "CR:g"` | Shell command to execute |
 | **Update Interval** | 60 seconds | How often to run the command |
-| **Chart Width** | 200 pixels | Width of the applet (height is automatic) |
+| **Chart Width** | 200 pixels | Width of the applet (height is automatic). If elements don't fit, a "»" indicator is shown |
 | **Bar Width** | 16 pixels | Width of vertical bars |
 | **Font Family** | Sans | Font for text labels (dropdown with 20+ fonts) |
 | **Font Size** | 10 pixels | Size of text |
@@ -254,7 +254,12 @@ Demonstrates all element types and features.
 **File:** `test-refresh.sh`  
 Shows time updating every 2-5 seconds to verify refresh is working.
 
-### 7. Two-Line Chart
+### 7. Overflow Indicator Test
+
+**File:** `test-overflow.sh`  
+Outputs many elements to demonstrate the overflow indicator "»" when elements don't fit within the chart width.
+
+### 8. Two-Line Chart
 
 **File:** `example-two-line.sh`  
 ```bash
