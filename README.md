@@ -43,7 +43,8 @@ cp -r cmd-chart-applet@cinnamon ~/.local/share/cinnamon/applets/
 | **Command** | `echo "CR:g"` | Shell command to execute |
 | **Update Interval** | 60 seconds | How often to run the command |
 | **Chart Width** | 200 pixels | Width of the applet (height is automatic). If elements don't fit, a "»" indicator is shown |
-| **Bar Width** | 16 pixels | Width of vertical bars |
+| **Bar Width** | 8 pixels | Width of vertical bars |
+| **Verbose Logging** | Off | Enable detailed logging. When off, only errors, start/exit, and config changes are logged |
 | **Font Family** | Sans | Font for text labels (dropdown with 20+ fonts) |
 | **Font Size** | 10 pixels | Size of text |
 | **Font Color** | White | Color for text |
@@ -294,6 +295,30 @@ Demonstrates 2-line mode with horizontal bars.
 **Levels:** 🟢 🟡 🔴 🔵  
 **System:** 💾 🌡️ 📊 ⚡ 🔋 📈 📉 🖥️ 🌐  
 
+## Logging
+
+The applet uses different logging levels:
+
+### Default Logging (Verbose Off)
+- Applet start/exit events
+- Configuration changes
+- Command execution errors
+- Exceptions
+
+### Verbose Logging (Verbose On)
+When enabled in settings, logs all operations:
+- Command execution details
+- Output parsing results
+- Element drawing operations
+- Space constraints and overflow warnings
+
+### View Logs
+
+```bash
+# Monitor logs in real-time
+journalctl -f | grep "CMD Chart"
+```
+
 ## Troubleshooting
 
 ### Only First Element Shows
@@ -306,9 +331,10 @@ Demonstrates 2-line mode with horizontal bars.
 2. Increase "Chart width" to 250-300 pixels
 3. Click OK
 
-Monitor logs to confirm:
+Enable verbose logging and monitor logs:
 
 ```bash
+# Enable verbose logging in settings, then:
 journalctl -f | grep "CMD Chart"
 # Look for: "Drew X of X elements"
 ```

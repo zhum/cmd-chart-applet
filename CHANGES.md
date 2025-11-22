@@ -67,6 +67,13 @@ Complete rewrite of the applet from stock price monitor to versatile command-bas
 - **Style:** Semi-transparent to distinguish from regular content
 - **Works in:** Both 1-line and 2-line modes
 
+#### 10. Verbose Logging Control
+- **Added:** Toggle for verbose logging in settings
+- **Default:** Off (logs only errors, start/exit, config changes)
+- **When enabled:** Logs all operations (command execution, parsing, drawing)
+- **Benefit:** Quieter logs by default, detailed logs when needed for debugging
+- **Changed:** Default bar width from 16px to 8px for more compact display
+
 ### Bug Fixes
 
 #### Issue #1: Screen Not Refreshing

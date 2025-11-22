@@ -25,12 +25,18 @@
     },
     "bar-width": {
         "type": "spinbutton",
-        "default": 16,
+        "default": 8,
         "min": 8,
         "max": 40,
         "step": 2,
         "description": "Bar width (pixels)",
         "tooltip": "Width of vertical bars in pixels"
+    },
+    "verbose-logging": {
+        "type": "checkbox",
+        "default": false,
+        "description": "Enable verbose logging",
+        "tooltip": "When enabled, logs all applet operations. When disabled, logs only errors, start/exit, and configuration changes. Use 'journalctl -f | grep \"CMD Chart\"' to view logs."
     },
     "chart-area-transparency": {
         "type": "scale",

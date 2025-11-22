@@ -47,10 +47,15 @@ CmdChartApplet.prototype = {
                                      "enable-font-shadow", "enableFontShadow", this.on_settings_changed, null);
             this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL,
                                      "font-shadow-color", "fontShadowColor", this.on_settings_changed, null);
+            this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL,
+                                     "verbose-logging", "verboseLogging", this.on_settings_changed, null);
 
             // Data storage for parsed elements
             this.chartElements = [];
             this.lastOutput = "";
+            
+            // Log applet start (always logged)
+            global.log("CMD Chart Applet: Starting applet (instance " + instance_id + ")");
 
             // Create panel chart - use full panel height
             this.panelChartActor = new St.DrawingArea({
@@ -95,6 +100,8 @@ CmdChartApplet.prototype = {
     },
 
     on_settings_changed: function() {
+        // Log settings change (always logged)
+        global.log("CMD Chart Applet: Settings changed");
         this.setupTimer();
         this.rebuildPanelChart();
         this.executeCommand();
@@ -275,7 +282,9 @@ CmdChartApplet.prototype = {
         try {
             let cmd = this.command || 'echo "CR:g"';
             
-            global.log("CMD Chart Applet: Executing command: " + cmd);
+            if (this.verboseLogging) {
+                global.log("CMD Chart Applet: Executing command: " + cmd);
+            }
             
             // Execute command synchronously
             let [success, stdout, stderr] = GLib.spawn_command_line_sync(cmd);
@@ -289,12 +298,16 @@ CmdChartApplet.prototype = {
                 if (parsed.twoLineMode) {
                     this.topLineElements = parsed.topLine;
                     this.bottomLineElements = parsed.bottomLine;
-                    global.log("CMD Chart Applet: Command output: " + this.lastOutput);
-                    global.log("CMD Chart Applet: 2-line mode: top=" + this.topLineElements.length + " elements, bottom=" + this.bottomLineElements.length + " elements");
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Command output: " + this.lastOutput);
+                        global.log("CMD Chart Applet: 2-line mode: top=" + this.topLineElements.length + " elements, bottom=" + this.bottomLineElements.length + " elements");
+                    }
                 } else {
                     this.chartElements = parsed.elements;
-                    global.log("CMD Chart Applet: Command output: " + this.lastOutput);
-                    global.log("CMD Chart Applet: Parsed " + this.chartElements.length + " elements");
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Command output: " + this.lastOutput);
+                        global.log("CMD Chart Applet: Parsed " + this.chartElements.length + " elements");
+                    }
                 }
                 
                 // Update tooltip with command output
@@ -302,7 +315,9 @@ CmdChartApplet.prototype = {
                 
                 // Redraw panel chart
                 if (this.panelChartActor) {
-                    global.log("CMD Chart Applet: Requesting repaint");
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Requesting repaint");
+                    }
                     this.panelChartActor.queue_repaint();
                 }
             } else {
@@ -338,18 +353,24 @@ CmdChartApplet.prototype = {
 
         // Check for 2-line mode
         if (this.twoLineMode) {
-            global.log("CMD Chart Applet: 2-line mode, top=" + (this.topLineElements ? this.topLineElements.length : 0) + 
-                      ", bottom=" + (this.bottomLineElements ? this.bottomLineElements.length : 0));
+            if (this.verboseLogging) {
+                global.log("CMD Chart Applet: 2-line mode, top=" + (this.topLineElements ? this.topLineElements.length : 0) + 
+                          ", bottom=" + (this.bottomLineElements ? this.bottomLineElements.length : 0));
+            }
             this.drawTwoLineChart(cr, width, height);
             return;
         }
 
         // Single line mode (original)
-        global.log("CMD Chart Applet: Single-line mode, elements: " + (this.chartElements ? this.chartElements.length : 0));
+        if (this.verboseLogging) {
+            global.log("CMD Chart Applet: Single-line mode, elements: " + (this.chartElements ? this.chartElements.length : 0));
+        }
 
         if (!this.chartElements || this.chartElements.length === 0) {
             // No elements to draw
-            global.log("CMD Chart Applet: No elements to draw");
+            if (this.verboseLogging) {
+                global.log("CMD Chart Applet: No elements to draw");
+            }
             return;
         }
 
@@ -370,7 +391,9 @@ CmdChartApplet.prototype = {
                 let centerY = height / 2;
 
                 if (centerX + radius + overflowIndicatorWidth > width) {
-                    global.log("CMD Chart Applet: Out of space for circle at element " + i + "/" + this.chartElements.length);
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Out of space for circle at element " + i + "/" + this.chartElements.length);
+                    }
                     hasOverflow = true;
                     break; // Out of space
                 }
@@ -391,7 +414,9 @@ CmdChartApplet.prototype = {
                 let barY = 2;
 
                 if (barX + barWidth + overflowIndicatorWidth > width) {
-                    global.log("CMD Chart Applet: Out of space for bar at element " + i + "/" + this.chartElements.length);
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Out of space for bar at element " + i + "/" + this.chartElements.length);
+                    }
                     hasOverflow = true;
                     break; // Out of space
                 }
@@ -450,7 +475,9 @@ CmdChartApplet.prototype = {
                 let textY = height / 2 + textHeight / 2;
 
                 if (textX + textWidth + overflowIndicatorWidth > width) {
-                    global.log("CMD Chart Applet: Out of space for text '" + element.text + "' at element " + i + "/" + this.chartElements.length);
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Out of space for text '" + element.text + "' at element " + i + "/" + this.chartElements.length);
+                    }
                     hasOverflow = true;
                     break; // Out of space
                 }
@@ -462,10 +489,12 @@ CmdChartApplet.prototype = {
             }
         }
 
-        global.log("CMD Chart Applet: Drew " + drawnElements + " of " + this.chartElements.length + " elements");
-        
-        if (drawnElements < this.chartElements.length) {
-            global.log("CMD Chart Applet: WARNING - Not all elements fit! Increase chart width in settings.");
+        if (this.verboseLogging) {
+            global.log("CMD Chart Applet: Drew " + drawnElements + " of " + this.chartElements.length + " elements");
+            
+            if (drawnElements < this.chartElements.length) {
+                global.log("CMD Chart Applet: WARNING - Not all elements fit! Increase chart width in settings.");
+            }
         }
         
         // Draw overflow indicator if not all elements fit
@@ -527,7 +556,9 @@ CmdChartApplet.prototype = {
                 let centerY = yOffset + lineHeight / 2;
                 
                 if (centerX + radius + overflowIndicatorWidth > width) {
-                    global.log("CMD Chart Applet: Out of space for circle");
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Out of space for circle");
+                    }
                     hasOverflow = true;
                     break;
                 }
@@ -557,7 +588,9 @@ CmdChartApplet.prototype = {
                     let barLength = normalizedValue * maxBarLength;
                     
                     if (barX + maxBarLength + overflowIndicatorWidth > width) {
-                        global.log("CMD Chart Applet: Out of space for horizontal bar");
+                        if (this.verboseLogging) {
+                            global.log("CMD Chart Applet: Out of space for horizontal bar");
+                        }
                         hasOverflow = true;
                         break;
                     }
@@ -610,7 +643,9 @@ CmdChartApplet.prototype = {
                 let textY = yOffset + lineHeight / 2 + textHeight / 2;
                 
                 if (textX + textWidth + overflowIndicatorWidth > width) {
-                    global.log("CMD Chart Applet: Out of space for text");
+                    if (this.verboseLogging) {
+                        global.log("CMD Chart Applet: Out of space for text");
+                    }
                     hasOverflow = true;
                     break;
                 }
@@ -630,7 +665,9 @@ CmdChartApplet.prototype = {
             cr.restore();
         }
         
-        global.log("CMD Chart Applet: Drew " + drawnElements + " of " + elements.length + " elements in line");
+        if (this.verboseLogging) {
+            global.log("CMD Chart Applet: Drew " + drawnElements + " of " + elements.length + " elements in line");
+        }
     },
 
     drawTextWithShadow: function(cr, text, x, y) {
@@ -654,6 +691,8 @@ CmdChartApplet.prototype = {
     },
 
     on_applet_removed_from_panel: function() {
+        // Log applet removal (always logged)
+        global.log("CMD Chart Applet: Applet removed from panel");
         if (this.timeout) {
             Mainloop.source_remove(this.timeout);
         }
