@@ -52,6 +52,14 @@ Complete rewrite of the applet from stock price monitor to versatile command-bas
 - **Improved:** Chart width range (20-600 pixels, default 200)
 - **Improved:** Update interval range (1-3600 seconds)
 
+#### 8. Two-Line Mode
+- **Added:** Optional 2-line display mode
+- **Format:** `2L| top elements || bottom elements`
+- **Feature:** Horizontal bars instead of vertical
+- **Benefit:** Display twice as much information
+- **Bar length:** Full panel height - 2px (spans entire height)
+- **Use case:** Comprehensive system monitoring in limited space
+
 ### Bug Fixes
 
 #### Issue #1: Screen Not Refreshing
@@ -91,8 +99,9 @@ Complete rewrite of the applet from stock price monitor to versatile command-bas
 2. **example-system-monitor-compact.sh** - Compact version (3 elements)
 3. **example-with-text-spaces.sh** - Demonstrates pipe separator
 4. **example-with-emojis.sh** - Emoji indicators (Cairo-dependent)
-5. **test-examples.sh** - All features demonstration
-6. **test-refresh.sh** - Visual refresh verification
+5. **example-two-line.sh** - Two-line mode with horizontal bars
+6. **test-examples.sh** - All features demonstration
+7. **test-refresh.sh** - Visual refresh verification
 
 #### Utility Scripts
 1. **list-fonts.sh** - List available fonts on system

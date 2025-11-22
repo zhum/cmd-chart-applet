@@ -96,6 +96,30 @@ echo "TXT:CPU:45%"          # Simple text (no spaces)
 echo "TXT:Hello World"      # With spaces (use pipe separator, see below)
 ```
 
+#### 4. Two-Line Mode: `2L|`
+
+Displays elements in two rows with horizontal bars instead of vertical.
+
+**Format:** `2L| top line elements || bottom line elements`
+
+- Starts with `2L|` marker
+- Top and bottom lines separated by `||`
+- Bars are horizontal (length = full panel height - 2px)
+- Allows twice as much information
+- Bars span full height for maximum visibility
+
+**Example:**
+
+```bash
+echo "2L| CR:g TXT:Load BAR:0-5=2.3:k:o || TXT:Mem BAR:0-100=60:k:b TXT:60%"
+```
+
+**Result:**
+```
+Top:    🟢 Load ▓▓▓▓▓░░░░░░░
+Bottom: Mem ▓▓▓▓▓▓░░░░ 60%
+```
+
 ### Separator Options
 
 **Space Separator (simple):**
@@ -174,6 +198,25 @@ mem=$(free | awk 'NR==2{printf "%.0f", 100*$3/$2}')
 echo "CR:g | TXT:🟢 Load ${load} | TXT:🌡️ ${temp}°C | TXT:💾 ${mem}%"
 ```
 
+### Example 6: Two-Line Mode
+
+```bash
+#!/bin/bash
+# Display in two lines with horizontal bars
+load=$(uptime | awk '{print $(NF-2)}' | tr -d ',')
+temp=$(sensors | grep 'Core 0' | awk '{print $3}' | tr -d '+°C' | cut -d. -f1)
+mem=$(free | awk 'NR==2{printf "%.0f", 100*$3/$2}')
+disk=$(df -h / | awk 'NR==2{gsub(/%/,"",$5); print $5}')
+
+# Top line: Load and temperature
+top="CR:g | TXT:Load | BAR:0-5=${load}:k:o | TXT:${temp}°C | BAR:0-100=${temp}:k:r"
+
+# Bottom line: Memory and disk
+bottom="TXT:Mem | BAR:0-100=${mem}:k:b | TXT:${mem}% | TXT:Disk | BAR:0-100=${disk}:k:y"
+
+echo "2L|${top}||${bottom}"
+```
+
 ## Included Example Scripts
 
 ### 1. System Monitor (Full)
@@ -210,6 +253,16 @@ Demonstrates all element types and features.
 
 **File:** `test-refresh.sh`  
 Shows time updating every 2-5 seconds to verify refresh is working.
+
+### 7. Two-Line Chart
+
+**File:** `example-two-line.sh`  
+```bash
+./example-two-line.sh
+```
+Demonstrates 2-line mode with horizontal bars.  
+**Top line:** System load and CPU temperature  
+**Bottom line:** Memory and disk usage
 
 ## Using Emojis
 
@@ -375,8 +428,10 @@ journalctl -f | grep "CMD Chart"
 - **Height:** Automatically uses full panel height
 - **Width:** Configurable (20-600 pixels)
 - **Element spacing:** 4 pixels between elements
-- **Circle radius:** `Math.min(height/2 - 2, 10)` pixels
-- **Bar width:** Configurable (8-40 pixels, default 16)
+- **Circle radius:** `Math.min(height/2 - 2, 10)` pixels (single-line), `Math.min(height/2 - 2, 8)` pixels (2-line)
+- **Vertical bar width:** Configurable (8-40 pixels, default 16)
+- **Horizontal bar length (2-line mode):** Full panel height - 2 pixels
+- **Horizontal bar height (2-line mode):** 8 pixels
 - **Text width:** Estimated at `length * (fontSize * 0.6)` pixels
 - **Update frequency:** 1-3600 seconds
 - **Command execution:** Synchronous (GLib.spawn_command_line_sync)
