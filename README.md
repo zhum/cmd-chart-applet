@@ -412,17 +412,9 @@ journalctl -f | grep "CMD Chart"
 
 ## Version History
 
-**v2.0.0** - Complete rewrite
-- New simple notation format (CR:, BAR:, TXT:)
-- Pipe separator for text with spaces
-- Emoji support with font selection
-- Auto-height (uses full panel height)
-- Configurable bar width
-- 20+ fonts in dropdown
-- Fixed text rendering issues
-- Comprehensive examples and documentation
+See [CHANGES.md](CHANGES.md) for detailed changelog.
 
-**v1.0.0** - Initial stock monitoring applet
+**Current version:** 2.0.0 - Complete rewrite with command-based architecture
 
 ## License
 
