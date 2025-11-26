@@ -186,6 +186,7 @@ CmdChartApplet.prototype = {
         // CR:color - circle with color (r,o,y,g,b,v,p,w,k, or #RGB/#RRGGBB)
         // BAR:min-max=value:bg:fg - vertical bar (or horizontal in 2-line mode)
         // TXT:text - text label (can contain spaces!)
+        // TXTC:color:text or TXTC:color text - colored text label (text can contain colons!)
         // Elements are separated by pipe '|' (or whitespace for backward compatibility)
         // 2-line mode: 2L| top elements || bottom elements
 
@@ -193,6 +194,9 @@ CmdChartApplet.prototype = {
         let twoLineMode = false;
         let topLineElements = [];
         let bottomLineElements = [];
+        
+        // Determine separator once for entire output (important for 2-line mode)
+        let usePipeSeparator = output.includes('|');
         
         // Check for 2-line mode marker
         if (output.trim().startsWith('2L|')) {
@@ -202,8 +206,8 @@ CmdChartApplet.prototype = {
             // Split into top and bottom lines using '||' separator
             let lines = output.split('||');
             if (lines.length >= 2) {
-                topLineElements = this.parseElementLine(lines[0]);
-                bottomLineElements = this.parseElementLine(lines[1]);
+                topLineElements = this.parseElementLine(lines[0], usePipeSeparator);
+                bottomLineElements = this.parseElementLine(lines[1], usePipeSeparator);
                 
                 return {
                     twoLineMode: true,
@@ -214,19 +218,23 @@ CmdChartApplet.prototype = {
         }
         
         // Single line mode (original behavior)
-        elements = this.parseElementLine(output);
+        elements = this.parseElementLine(output, usePipeSeparator);
         return {
             twoLineMode: false,
             elements: elements
         };
     },
 
-    parseElementLine: function(output) {
+    parseElementLine: function(output, usePipeSeparator) {
         // Parse a single line of elements
         let elements = [];
         
-        // Split by pipe first (new format), or whitespace (old format for compatibility)
-        let separator = output.includes('|') ? '|' : /\s+/;
+        // Use the separator determined at the top level (important for 2-line mode)
+        // If usePipeSeparator is undefined, check this line (backward compatibility)
+        if (usePipeSeparator === undefined) {
+            usePipeSeparator = output.includes('|');
+        }
+        let separator = usePipeSeparator ? '|' : /\s+/;
         let tokens = output.trim().split(separator);
         
         for (let token of tokens) {
@@ -263,13 +271,56 @@ CmdChartApplet.prototype = {
                         }
                     }
                 }
+            } else if (token.startsWith('TXTC:')) {
+                // Colored text: TXTC:color:text or TXTC:color text
+                // Color is single char (r,o,y,g,b,v,p,w,k) or hex (#RGB or #RRGGBB)
+                // Text can contain colons and spaces
+                let rest = token.substring(5); // Remove 'TXTC:' prefix
+                let color, text;
+                let textStartIndex;
+                
+                if (rest.startsWith('#')) {
+                    // Hex color: extract #RGB or #RRGGBB
+                    let hexMatch = rest.match(/^(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6})/);
+                    if (hexMatch) {
+                        color = hexMatch[1];
+                        textStartIndex = color.length;
+                    } else {
+                        // Invalid hex, skip
+                        continue;
+                    }
+                } else {
+                    // Single character color code
+                    color = rest.charAt(0);
+                    textStartIndex = 1;
+                }
+                
+                // Skip separator (: or space) after color if present
+                if (textStartIndex < rest.length) {
+                    let separator = rest.charAt(textStartIndex);
+                    if (separator === ':' || separator === ' ') {
+                        textStartIndex++;
+                    }
+                }
+                
+                // Extract text (everything after color and separator)
+                text = rest.substring(textStartIndex);
+                
+                if (text) {
+                    elements.push({
+                        type: 'text',
+                        text: text,
+                        color: color
+                    });
+                }
             } else if (token.startsWith('TXT:')) {
-                // Text: TXT:text
+                // Text: TXT:text (uses default font color)
                 let text = token.substring(4);
                 if (text) {
                     elements.push({
                         type: 'text',
-                        text: text
+                        text: text,
+                        color: null  // null means use default font color
                     });
                 }
             }
@@ -482,7 +533,7 @@ CmdChartApplet.prototype = {
                     break; // Out of space
                 }
 
-                this.drawTextWithShadow(cr, element.text, textX, textY);
+                this.drawTextWithShadow(cr, element.text, textX, textY, element.color);
 
                 currentX = textX + textWidth + spacing;
                 drawnElements++;
@@ -650,7 +701,7 @@ CmdChartApplet.prototype = {
                     break;
                 }
                 
-                this.drawTextWithShadow(cr, element.text, textX, textY);
+                this.drawTextWithShadow(cr, element.text, textX, textY, element.color);
                 
                 currentX = textX + textWidth + spacing;
                 drawnElements++;
@@ -670,7 +721,7 @@ CmdChartApplet.prototype = {
         }
     },
 
-    drawTextWithShadow: function(cr, text, x, y) {
+    drawTextWithShadow: function(cr, text, x, y, customColor) {
         // Draw shadow first if enabled
         if (this.enableFontShadow) {
             let shadowColor = this.parseRGBAColor(this.fontShadowColor || "rgba(0, 0, 0, 0.8)");
@@ -679,8 +730,15 @@ CmdChartApplet.prototype = {
             cr.showText(text);
         }
 
-        // Draw main text
-        let fontColor = this.parseRGBAColor(this.fontColor || "rgba(255, 255, 255, 1.0)");
+        // Draw main text with custom color or default font color
+        let fontColor;
+        if (customColor) {
+            // Use parseColor for single-letter color codes or hex colors
+            fontColor = this.parseColor(customColor);
+        } else {
+            // Use default font color from settings
+            fontColor = this.parseRGBAColor(this.fontColor || "rgba(255, 255, 255, 1.0)");
+        }
         cr.setSourceRGBA(fontColor.r, fontColor.g, fontColor.b, fontColor.a);
         cr.moveTo(x, y);
         cr.showText(text);

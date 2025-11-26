@@ -3,7 +3,7 @@
         "type": "entry",
         "default": "echo \"CR:g\"",
         "description": "Command to execute",
-        "tooltip": "Shell command to run periodically. Elements: CR:color (circle), BAR:min-max=val:bg:fg (bar), TXT:text (label). Separate with spaces OR pipes (|) to allow spaces in text."
+        "tooltip": "Shell command to run periodically. Elements: CR:color (circle), BAR:min-max=val:bg:fg (bar), TXT:text (label), TXTC:color text or TXTC:color:text (colored label). Separate with spaces OR pipes (|) to allow spaces in text."
     },
     "update-interval": {
         "type": "spinbutton",

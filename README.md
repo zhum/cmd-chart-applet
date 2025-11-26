@@ -88,7 +88,7 @@ echo "BAR:0-5=2.3:w:o"      # Value 2.3 in 0-5 range, white bg, orange fill
 
 #### 3. Text Label: `TXT:text`
 
-Displays text on the panel.
+Displays text on the panel with default font color.
 
 **Example:**
 
@@ -97,7 +97,24 @@ echo "TXT:CPU:45%"          # Simple text (no spaces)
 echo "TXT:Hello World"      # With spaces (use pipe separator, see below)
 ```
 
-#### 4. Two-Line Mode: `2L|`
+#### 4. Colored Text Label: `TXTC:color:text` or `TXTC:color text`
+
+Displays text with a custom color. The separator between color and text is optional (colon or space). Text can contain colons.
+
+**Color codes:** `r` (red), `o` (orange), `y` (yellow), `g` (green), `b` (blue), `v` (violet), `p` (pink), `w` (white), `k` (black), or `#RGB`/`#RRGGBB` hex
+
+**Example:**
+
+```bash
+echo "TXTC:r:ERROR"            # Red error message (with colon)
+echo "TXTC:g OK"               # Green OK status (with space)
+echo "TXTC:o Warning"          # Orange warning (with space)
+echo "TXTC:r a:103"            # Text can contain colons - shows "a:103" in red
+echo "TXTC:g Load:2.5"         # Shows "Load:2.5" in green
+echo "TXTC:#FF00FF Custom"     # Custom magenta color (hex)
+```
+
+#### 5. Two-Line Mode: `2L|`
 
 Displays elements in two rows with horizontal bars instead of vertical.
 
@@ -260,7 +277,20 @@ Shows time updating every 2-5 seconds to verify refresh is working.
 **File:** `test-overflow.sh`  
 Outputs many elements to demonstrate the overflow indicator "»" when elements don't fit within the chart width.
 
-### 8. Two-Line Chart
+### 8. Colored Text Test
+
+**File:** `test-colored-text.sh`  
+Demonstrates colored text labels using `TXTC:color:text` format with various colors.
+
+### 9. Status Monitor with Colors
+
+**File:** `example-status-monitor.sh`  
+Practical example using colored text for system status monitoring. Text color changes based on thresholds:
+- Green: Normal
+- Orange: Warning
+- Red: Critical
+
+### 10. Two-Line Chart
 
 **File:** `example-two-line.sh`  
 ```bash

@@ -74,6 +74,28 @@ Complete rewrite of the applet from stock price monitor to versatile command-bas
 - **Benefit:** Quieter logs by default, detailed logs when needed for debugging
 - **Changed:** Default bar width from 16px to 8px for more compact display
 
+#### 11. Colored Text Labels
+- **Added:** New `TXTC:color:text` format for colored text
+- **Format:** `TXTC:r:ERROR` or `TXTC:r ERROR` (colon is optional)
+- **Colors:** Supports single-letter codes (r, o, y, g, b, v, p, w, k) and hex (#RRGGBB)
+- **Benefit:** Visual emphasis for status messages, errors, warnings
+- **Backward compatible:** Existing `TXT:text` continues to use default font color
+- **Flexible syntax:** Both `TXTC:g:OK` and `TXTC:g OK` work identically
+
+### Bug Fixes
+
+#### 2-Line Mode Parsing
+- **Fixed:** Top line not showing when it lacks `|` separator
+- **Problem:** In 2-line mode, if top line had no pipes (e.g., `2L| TXT:text ||...`), it would use whitespace splitting and fail
+- **Solution:** Separator is now determined from entire output, not per-line
+- **Example:** `2L| TXT: nv-pdx-002 || TXT:278 | TXT:71` now works correctly
+
+#### TXTC Color Extraction
+- **Fixed:** Text containing colons was incorrectly parsed
+- **Problem:** `TXTC:r a:103` would fail because the parser split on all colons
+- **Solution:** Color is now extracted intelligently (single char or hex #RGB/#RRGGBB), then everything after separator is treated as text
+- **Example:** `TXTC:r a:103` correctly shows "a:103" in red, `TXTC:g Load:2.5` shows "Load:2.5" in green
+
 ### Bug Fixes
 
 #### Issue #1: Screen Not Refreshing
