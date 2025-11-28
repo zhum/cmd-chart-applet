@@ -1,0 +1,12 @@
+[Applet Factory]
+Id=CmdChartAppletFactory
+InProcess=false
+Location=/usr/lib/mate-applets/cmd-chart-applet.py
+Name=Cmd Chart Applet
+Description=Draw chart on command output
+
+[CmdChartApplet]
+Name=Cmd Chart Applet
+Description=Draw chart on command output
+Icon=utilities-system-monitor
+MateComponentId=OAFIID:MATE_CmdChartApplet

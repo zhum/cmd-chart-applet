@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.mate.panel.applet.CmdChartAppletFactory
+Exec=/usr/lib/mate-applets/cmd-chart-applet.py

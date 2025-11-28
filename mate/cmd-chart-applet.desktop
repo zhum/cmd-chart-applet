@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=CMD Chart Applet
+Comment=Displays command output as a chart
+Exec=/usr/lib/mate-applets/cmd-chart-applet.py
+Icon=utilities-terminal
+Terminal=false
+Categories=MATE;Utility;
+X-MATE-AppletType=utility
