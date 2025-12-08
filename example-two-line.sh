@@ -39,7 +39,7 @@ fi
 top_line="$load_color | TXT:Load | BAR:0-5=${load}:k:o | $temp_color | TXT:${temp}°C | BAR:0-100=${temp}:k:r"
 
 # BOTTOM LINE: Memory and disk usage
-bottom_line="TXT:Mem . | BAR:0-100=${mem_pct}:k:b | TXT:${mem_pct}% | TXT:Disk | BAR:0-100=${disk_pct}:k:y | TXT:${disk_pct}%"
+bottom_line="TXT:Mem . | BAR:0-100=${mem_pct}:k:b | TXT:${mem_pct}% | TXT:Disk | HBAR:0-100=${disk_pct}:k:y | TXT:${disk_pct}%"
 
 # Output in 2-line mode format
 echo "2L|${top_line}||${bottom_line}"

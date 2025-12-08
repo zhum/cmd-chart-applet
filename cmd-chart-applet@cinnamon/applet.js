@@ -17,6 +17,7 @@ CmdChartApplet.prototype = {
     __proto__: Applet.Applet.prototype,
 
     _init: function(orientation, panel_height, instance_id) {
+        global.logError("PALEL HEIGHT: " + panel_height)
         Applet.Applet.prototype._init.call(this, orientation, panel_height, instance_id);
 
         try {
@@ -184,45 +185,24 @@ CmdChartApplet.prototype = {
     parseCommandOutput: function(output) {
         // Parse command output for chart elements with new simple format:
         // CR:color - circle with color (r,o,y,g,b,v,p,w,k, or #RGB/#RRGGBB)
-        // BAR:min-max=value:bg:fg - vertical bar (or horizontal in 2-line mode)
+        // BAR:min-max=value:bg:fg - vertical bar
+        // HBAR:min-max=value:bg:fg - horizontal bar
         // TXT:text - text label (can contain spaces!)
         // TXTC:color:text or TXTC:color text - colored text label (text can contain colons!)
         // Elements are separated by pipe '|' (or whitespace for backward compatibility)
         // 2-line mode: 2L| top elements || bottom elements
 
-        let elements = [];
-        let twoLineMode = false;
-        let topLineElements = [];
-        let bottomLineElements = [];
-        
         // Determine separator once for entire output (important for 2-line mode)
         let usePipeSeparator = output.includes('|');
         
         // Check for 2-line mode marker
-        if (output.trim().startsWith('2L|')) {
-            twoLineMode = true;
-            output = output.trim().substring(3); // Remove '2L|' marker
-            
-            // Split into top and bottom lines using '||' separator
-            let lines = output.split('||');
-            if (lines.length >= 2) {
-                topLineElements = this.parseElementLine(lines[0], usePipeSeparator);
-                bottomLineElements = this.parseElementLine(lines[1], usePipeSeparator);
-                
-                return {
-                    twoLineMode: true,
-                    topLine: topLineElements,
-                    bottomLine: bottomLineElements
-                };
-            }
-        }
-        
-        // Single line mode (original behavior)
-        elements = this.parseElementLine(output, usePipeSeparator);
-        return {
-            twoLineMode: false,
-            elements: elements
-        };
+        // if (output.trim().startsWith('2L|')) {
+        //     twoLineMode = true;
+        //     output = output.trim().substring(3); // Remove '2L|' marker
+        // }
+        // Split into top and bottom lines using '||' separator
+        let lines = output.split('||');
+        return lines.map( l => this.parseElementLine(l, usePipeSeparator) );
     },
 
     parseElementLine: function(output, usePipeSeparator) {
@@ -262,6 +242,26 @@ CmdChartApplet.prototype = {
                         if (minMax.length === 2) {
                             elements.push({
                                 type: 'bar',
+                                min: parseFloat(minMax[0]),
+                                max: parseFloat(minMax[1]),
+                                value: parseFloat(rangeValue[1]),
+                                bgColor: parts[1],
+                                fgColor: parts[2]
+                            });
+                        }
+                    }
+                }
+            } else if (token.startsWith('HBAR:')) {
+                // Bar: HBAR:min-max=value:bg:fg
+                let parts = token.substring(5).split(':');
+                if (parts.length >= 3) {
+                    // Parse min-max=value
+                    let rangeValue = parts[0].split('=');
+                    if (rangeValue.length === 2) {
+                        let minMax = rangeValue[0].split('-');
+                        if (minMax.length === 2) {
+                            elements.push({
+                                type: 'hbar',
                                 min: parseFloat(minMax[0]),
                                 max: parseFloat(minMax[1]),
                                 value: parseFloat(rangeValue[1]),
@@ -342,40 +342,22 @@ CmdChartApplet.prototype = {
 
             if (success && stdout) {
                 this.lastOutput = stdout.toString().trim();
-                let parsed = this.parseCommandOutput(this.lastOutput);
+                this.chartElements = this.parseCommandOutput(this.lastOutput);
                 
                 // Store parsed data
-                this.twoLineMode = parsed.twoLineMode;
-                if (parsed.twoLineMode) {
-                    this.topLineElements = parsed.topLine;
-                    this.bottomLineElements = parsed.bottomLine;
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Command output: " + this.lastOutput);
-                        global.log("CMD Chart Applet: 2-line mode: top=" + this.topLineElements.length + " elements, bottom=" + this.bottomLineElements.length + " elements");
-                    }
-                } else {
-                    this.chartElements = parsed.elements;
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Command output: " + this.lastOutput);
-                        global.log("CMD Chart Applet: Parsed " + this.chartElements.length + " elements");
-                    }
+                if (this.verboseLogging) {
+                    global.log("CMD Chart Applet: Command output: " + this.lastOutput);
+                    global.log("CMD Chart Applet: parsed " +
+                        this.chartElements.length +
+                        " elements: " +
+                        this.chartElements.map(e => JSON.stringify(e)));
                 }
-                
-                // Update tooltip with command output
-                this.set_applet_tooltip("Command: " + cmd + "\nOutput: " + this.lastOutput);
                 
                 // Redraw panel chart
                 if (this.panelChartActor) {
                     if (this.verboseLogging) {
                         global.log("CMD Chart Applet: Requesting repaint");
                     }
-                    this.panelChartActor.queue_repaint();
-                }
-            } else {
-                global.log("CMD Chart Applet: Command failed");
-                this.set_applet_tooltip("Command failed: " + cmd);
-                this.chartElements = [];
-                if (this.panelChartActor) {
                     this.panelChartActor.queue_repaint();
                 }
             }
@@ -389,6 +371,7 @@ CmdChartApplet.prototype = {
             }
         }
 
+        this.set_applet_tooltip(_("CMD: " + this.lastOutput));
         return true; // Continue the timer
     },
 
@@ -402,21 +385,6 @@ CmdChartApplet.prototype = {
         cr.rectangle(0, 0, width, height);
         cr.fill();
 
-        // Check for 2-line mode
-        if (this.twoLineMode) {
-            if (this.verboseLogging) {
-                global.log("CMD Chart Applet: 2-line mode, top=" + (this.topLineElements ? this.topLineElements.length : 0) + 
-                          ", bottom=" + (this.bottomLineElements ? this.bottomLineElements.length : 0));
-            }
-            this.drawTwoLineChart(cr, width, height);
-            return;
-        }
-
-        // Single line mode (original)
-        if (this.verboseLogging) {
-            global.log("CMD Chart Applet: Single-line mode, elements: " + (this.chartElements ? this.chartElements.length : 0));
-        }
-
         if (!this.chartElements || this.chartElements.length === 0) {
             // No elements to draw
             if (this.verboseLogging) {
@@ -425,124 +393,185 @@ CmdChartApplet.prototype = {
             return;
         }
 
+        let num_lines = this.chartElements.length;
+        // Single line mode (original)
+        if (this.verboseLogging) {
+            global.log("CMD Chart Applet: draw lines: " + num_lines);
+        }
+
         // Calculate spacing for elements
         let spacing = 4;
         let currentX = spacing;
         let drawnElements = 0;
         let overflowIndicatorWidth = 20; // Reserve space for "..." indicator
         let hasOverflow = false;
+        let lineHeight = height / num_lines;
 
-        for (let i = 0; i < this.chartElements.length; i++) {
-            let element = this.chartElements[i];
+        for (let l = 0; l < num_lines; l++) {
+            let y_offset = l * lineHeight;
+            let line = this.chartElements[l];
+            currentX = spacing;
+            global.log("CMD Chart Applet: line "+ l + ": " + JSON.stringify(line));
+            for( let i = 0; i < line.length; i++ ){
 
-            if (element.type === 'circle') {
-                // Draw circle
-                let radius = Math.min(height / 2 - 2, 10);
-                let centerX = currentX + radius;
-                let centerY = height / 2;
+                let element = line[i];
+                global.log("CMD Chart Applet: line " + l + " element "+ i + ": " + JSON.stringify(element));
+                if (element.type === 'circle') {
+                    // Draw circle
+                    let radius = Math.min(lineHeight / 2 - 2, 10);
+                    let centerX = currentX + radius;
+                    let centerY = y_offset + lineHeight / 2;
 
-                if (centerX + radius + overflowIndicatorWidth > width) {
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Out of space for circle at element " + i + "/" + this.chartElements.length);
+                    if (centerX + radius + overflowIndicatorWidth > width) {
+                        if (this.verboseLogging) {
+                            global.log("CMD Chart Applet: Out of space for circle at element " + i + "/" + this.chartElements.length);
+                        }
+                        hasOverflow = true;
+                        break; // Out of space
                     }
-                    hasOverflow = true;
-                    break; // Out of space
-                }
 
-                let color = this.parseColor(element.color);
-                cr.setSourceRGBA(color.r, color.g, color.b, color.a);
-                cr.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                cr.fill();
+                    let color = this.parseColor(element.color);
+                    cr.setSourceRGBA(color.r, color.g, color.b, color.a);
+                    cr.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    cr.fill();
 
-                currentX = centerX + radius + spacing;
-                drawnElements++;
+                    currentX = centerX + radius + spacing;
+                    drawnElements++;
 
-            } else if (element.type === 'bar') {
-                // Draw vertical bar
-                let barWidth = this.barWidth || 16;
-                let barHeight = height - 4;
-                let barX = currentX;
-                let barY = 2;
+                } else if (element.type === 'bar' || element.type === 'hbar') {
+                    // Draw a bar
+                    let elWidth = this.barWidth || 16;
+                    let barHeight = lineHeight - 2;
+                    let barX = currentX;
+                    let barY = y_offset + 2;
 
-                if (barX + barWidth + overflowIndicatorWidth > width) {
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Out of space for bar at element " + i + "/" + this.chartElements.length);
+                    if (element.type[0] === 'h') {
+                        elWidth = lineHeight;
+                        barHeight = Math.min(this.barWidth, lineHeight - 2);
                     }
-                    hasOverflow = true;
-                    break; // Out of space
-                }
-
-                // Calculate bar fill height based on value
-                let range = element.max - element.min;
-                let normalizedValue = 0;
-                if (range > 0) {
-                    normalizedValue = Math.max(0, Math.min(1, (element.value - element.min) / range));
-                }
-                let fillHeight = normalizedValue * barHeight;
-
-                // Draw background
-                let bgColor = this.parseColor(element.bgColor);
-                cr.setSourceRGBA(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-                cr.rectangle(barX, barY, barWidth, barHeight);
-                cr.fill();
-
-                // Draw foreground (filled portion from bottom)
-                let fgColor = this.parseColor(element.fgColor);
-                cr.setSourceRGBA(fgColor.r, fgColor.g, fgColor.b, fgColor.a);
-                cr.rectangle(barX, barY + barHeight - fillHeight, barWidth, fillHeight);
-                cr.fill();
-
-                // Draw border
-                cr.setSourceRGBA(0.5, 0.5, 0.5, 0.8);
-                cr.setLineWidth(1);
-                cr.rectangle(barX, barY, barWidth, barHeight);
-                cr.stroke();
-
-                currentX = barX + barWidth + spacing;
-                drawnElements++;
-
-            } else if (element.type === 'text') {
-                // Draw text
-                let fontFamily = this.fontFamily || "Sans";
-                cr.selectFontFace(fontFamily, Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
-                let fontSize = this.fontSize || 10;
-                cr.setFontSize(fontSize);
-
-                // Try to get actual text width, fall back to estimation if not available
-                let textWidth;
-                let textHeight;
-                try {
-                    // Try Cairo's text measurement (might not be available in all GJS versions)
-                    let extents = cr.textExtents(element.text);
-                    textWidth = extents.width;
-                    textHeight = extents.height;
-                } catch (e) {
-                    // Fall back to estimation
-                    textWidth = element.text.length * (fontSize * 0.6);
-                    textHeight = fontSize;
-                }
-
-                let textX = currentX;
-                let textY = height / 2 + textHeight / 2;
-
-                if (textX + textWidth + overflowIndicatorWidth > width) {
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Out of space for text '" + element.text + "' at element " + i + "/" + this.chartElements.length);
+                    if (barX + elWidth + overflowIndicatorWidth > width) {
+                        if (this.verboseLogging) {
+                            global.log(
+                                "CMD Chart Applet: Out of space for bar line " + l + 
+                                "element " + i + "/" + this.chartElements.length);
+                        }
+                        hasOverflow = true;
+                        break; // Out of space
                     }
-                    hasOverflow = true;
-                    break; // Out of space
+
+                    // Calculate bar fill height based on value
+                    let range = element.max - element.min;
+                    let normalizedValue = 0;
+                    if (range > 0) {
+                        normalizedValue = Math.max(0, Math.min(1, (element.value - element.min) / range));
+                    }
+
+                    let bgColor = this.parseColor(element.bgColor);
+                    let fgColor = this.parseColor(element.fgColor);
+                    if (element.type[0] === 'h') {
+                        // horizontal bar
+                        elWidth = Math.round(barHeight * 2);
+                        let fillWidth = normalizedValue * elWidth;
+                        // Draw background
+                    
+                        cr.setSourceRGBA(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+                        cr.rectangle(
+                            barX,
+                            barY + (lineHeight - elWidth) / 2,
+                            elWidth,
+                            barHeight);
+                        cr.fill();
+
+                        // Draw foreground (filled portion from bottom)
+                        cr.setSourceRGBA(fgColor.r, fgColor.g, fgColor.b, fgColor.a);
+                        cr.rectangle(
+                            barX,
+                            barY + (lineHeight - elWidth) / 2,
+                            fillWidth,
+                            barHeight);
+                        cr.fill();
+
+                        // Draw border
+                        cr.setSourceRGBA(0.5, 0.5, 0.5, 0.8);
+                        cr.setLineWidth(1);
+                        cr.rectangle(
+                            barX,
+                            barY + (lineHeight - elWidth) / 2,
+                            elWidth,
+                            barHeight);
+                        cr.stroke();
+                    }
+                    else {
+                        // vertical bar
+                        let fillHeight = normalizedValue * barHeight;
+                        // Draw background
+                        cr.setSourceRGBA(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+                        cr.rectangle(barX, barY, elWidth, barHeight);
+                        cr.fill();
+
+                        // Draw foreground (filled portion from bottom)
+                        cr.setSourceRGBA(fgColor.r, fgColor.g, fgColor.b, fgColor.a);
+                        cr.rectangle(barX, barY + barHeight - fillHeight, elWidth, fillHeight);
+                        cr.fill();
+
+                        // Draw border
+                        cr.setSourceRGBA(0.5, 0.5, 0.5, 0.8);
+                        cr.setLineWidth(1);
+                        cr.rectangle(barX, barY, elWidth, barHeight);
+                        cr.stroke();
+                    }
+
+                    currentX = barX + elWidth + spacing;
+                    drawnElements++;
+
+                } else if (element.type === 'text') {
+                    // Draw text
+                    let fontFamily = this.fontFamily || "Sans";
+                    cr.selectFontFace(fontFamily, Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+                    let fontSize = this.fontSize || 10;
+                    cr.setFontSize(fontSize);
+
+                    // Try to get actual text width, fall back to estimation if not available
+                    let textWidth;
+                    let textHeight;
+                    try {
+                        // Try Cairo's text measurement (might not be available in all GJS versions)
+                        let extents = cr.textExtents(element.text);
+                        textWidth = extents.width;
+                        textHeight = extents.height;
+                    } catch (e) {
+                        // Fall back to estimation
+                        textWidth = element.text.length * (fontSize * 0.6);
+                        textHeight = fontSize;
+                    }
+
+                    let textX = currentX;
+                    let textY = y_offset + lineHeight / 2 + textHeight / 2;
+
+                    if (textX + textWidth + overflowIndicatorWidth > width) {
+                        if (this.verboseLogging) {
+                            global.log("CMD Chart Applet: Out of space for text '" + 
+                                element.text + 
+                                "', line " +
+                                l +
+                                " at element " + 
+                                i + 
+                                " of " + 
+                                this.chartElements.length);
+                        }
+                        hasOverflow = true;
+                        break; // Out of space
+                    }
+
+                    this.drawTextWithShadow(cr, element.text, textX, textY, element.color);
+
+                    currentX = textX + textWidth + spacing;
+                    drawnElements++;
                 }
-
-                this.drawTextWithShadow(cr, element.text, textX, textY, element.color);
-
-                currentX = textX + textWidth + spacing;
-                drawnElements++;
             }
         }
 
         if (this.verboseLogging) {
-            global.log("CMD Chart Applet: Drew " + drawnElements + " of " + this.chartElements.length + " elements");
-            
             if (drawnElements < this.chartElements.length) {
                 global.log("CMD Chart Applet: WARNING - Not all elements fit! Increase chart width in settings.");
             }
@@ -569,156 +598,6 @@ CmdChartApplet.prototype = {
         cr.setSourceRGBA(fontColor.r, fontColor.g, fontColor.b, 0.6);
         cr.moveTo(textX, textY);
         cr.showText(indicator);
-    },
-
-    drawTwoLineChart: function(cr, width, height) {
-        // Draw chart with two lines (top and bottom)
-        let lineHeight = height / 2;
-        let spacing = 4;
-        
-        // Draw top line (bars use full height)
-        if (this.topLineElements && this.topLineElements.length > 0) {
-            this.drawElementLine(cr, this.topLineElements, width, height, lineHeight, 0, spacing, true);
-        }
-        
-        // Draw bottom line (bars use full height)
-        if (this.bottomLineElements && this.bottomLineElements.length > 0) {
-            this.drawElementLine(cr, this.bottomLineElements, width, height, lineHeight, lineHeight, spacing, true);
-        }
-    },
-
-    drawElementLine: function(cr, elements, width, fullHeight, lineHeight, yOffset, spacing, horizontalBars) {
-        // Draw a line of elements (for 2-line mode or regular mode)
-        // fullHeight - total applet height (for bar length in 2-line mode)
-        // lineHeight - height of current line (for element vertical positioning)
-        // yOffset - vertical offset for this line
-        let currentX = spacing;
-        let drawnElements = 0;
-        let overflowIndicatorWidth = 20; // Reserve space for "»" indicator
-        let hasOverflow = false;
-        
-        for (let i = 0; i < elements.length; i++) {
-            let element = elements[i];
-            
-            if (element.type === 'circle') {
-                // Draw circle
-                let radius = Math.min(lineHeight / 2 - 2, 8);
-                let centerX = currentX + radius;
-                let centerY = yOffset + lineHeight / 2;
-                
-                if (centerX + radius + overflowIndicatorWidth > width) {
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Out of space for circle");
-                    }
-                    hasOverflow = true;
-                    break;
-                }
-                
-                let color = this.parseColor(element.color);
-                cr.setSourceRGBA(color.r, color.g, color.b, color.a);
-                cr.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                cr.fill();
-                
-                currentX = centerX + radius + spacing;
-                drawnElements++;
-                
-            } else if (element.type === 'bar') {
-                if (horizontalBars) {
-                    // Horizontal bar for 2-line mode - use full applet height
-                    let maxBarLength = fullHeight - 2;  // Full height minus margins
-                    let barHeight = 8;
-                    let barX = currentX;
-                    let barY = yOffset + (lineHeight - barHeight) / 2;
-                    
-                    // Calculate bar length based on value
-                    let range = element.max - element.min;
-                    let normalizedValue = 0;
-                    if (range > 0) {
-                        normalizedValue = Math.max(0, Math.min(1, (element.value - element.min) / range));
-                    }
-                    let barLength = normalizedValue * maxBarLength;
-                    
-                    if (barX + maxBarLength + overflowIndicatorWidth > width) {
-                        if (this.verboseLogging) {
-                            global.log("CMD Chart Applet: Out of space for horizontal bar");
-                        }
-                        hasOverflow = true;
-                        break;
-                    }
-                    
-                    // Draw background
-                    let bgColor = this.parseColor(element.bgColor);
-                    cr.setSourceRGBA(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-                    cr.rectangle(barX, barY, maxBarLength, barHeight);
-                    cr.fill();
-                    
-                    // Draw foreground (filled portion from left)
-                    let fgColor = this.parseColor(element.fgColor);
-                    cr.setSourceRGBA(fgColor.r, fgColor.g, fgColor.b, fgColor.a);
-                    cr.rectangle(barX, barY, barLength, barHeight);
-                    cr.fill();
-                    
-                    // Draw border
-                    cr.setSourceRGBA(0.5, 0.5, 0.5, 0.8);
-                    cr.setLineWidth(1);
-                    cr.rectangle(barX, barY, maxBarLength, barHeight);
-                    cr.stroke();
-                    
-                    currentX = barX + maxBarLength + spacing;
-                    drawnElements++;
-                } else {
-                    // Vertical bar (original mode - shouldn't happen in 2-line mode)
-                    // Keep for potential future use
-                }
-                
-            } else if (element.type === 'text') {
-                // Draw text
-                let fontFamily = this.fontFamily || "Sans";
-                cr.selectFontFace(fontFamily, Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
-                let fontSize = this.fontSize || 10;
-                cr.setFontSize(fontSize);
-                
-                // Try to get actual text width
-                let textWidth;
-                let textHeight;
-                try {
-                    let extents = cr.textExtents(element.text);
-                    textWidth = extents.width;
-                    textHeight = extents.height;
-                } catch (e) {
-                    textWidth = element.text.length * (fontSize * 0.6);
-                    textHeight = fontSize;
-                }
-                
-                let textX = currentX;
-                let textY = yOffset + lineHeight / 2 + textHeight / 2;
-                
-                if (textX + textWidth + overflowIndicatorWidth > width) {
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Out of space for text");
-                    }
-                    hasOverflow = true;
-                    break;
-                }
-                
-                this.drawTextWithShadow(cr, element.text, textX, textY, element.color);
-                
-                currentX = textX + textWidth + spacing;
-                drawnElements++;
-            }
-        }
-        
-        // Draw overflow indicator if not all elements fit
-        if (hasOverflow && currentX < width) {
-            cr.save();
-            cr.translate(0, yOffset);
-            this.drawOverflowIndicator(cr, currentX, width, lineHeight);
-            cr.restore();
-        }
-        
-        if (this.verboseLogging) {
-            global.log("CMD Chart Applet: Drew " + drawnElements + " of " + elements.length + " elements in line");
-        }
     },
 
     drawTextWithShadow: function(cr, text, x, y, customColor) {
