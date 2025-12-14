@@ -1,33 +1,47 @@
+// eslint-disable-next-line no-undef
 const Applet = imports.ui.applet;
+// eslint-disable-next-line no-undef
 const PopupMenu = imports.ui.popupMenu;
+// eslint-disable-next-line no-undef
 const St = imports.gi.St;
+// eslint-disable-next-line no-undef
 const GLib = imports.gi.GLib;
+// eslint-disable-next-line no-undef
 const Util = imports.misc.util;
+// eslint-disable-next-line no-undef
 const Lang = imports.lang;
+// eslint-disable-next-line no-undef
 const Settings = imports.ui.settings;
+// eslint-disable-next-line no-undef
 const Mainloop = imports.mainloop;
+// eslint-disable-next-line no-undef
 const Cairo = imports.cairo;
-const Clutter = imports.gi.Clutter;
+// const Clutter = imports.gi.Clutter;
 
-function CmdChartApplet(orientation, panel_height, instance_id) {
-    this._init(orientation, panel_height, instance_id);
+function CmdChartApplet(orientation, panel_height, instance_id, metadata) {
+    this._init(orientation, panel_height, instance_id, metadata);
 }
 
 CmdChartApplet.prototype = {
     __proto__: Applet.Applet.prototype,
 
-    _init: function(orientation, panel_height, instance_id) {
-        global.logError("PALEL HEIGHT: " + panel_height)
-        Applet.Applet.prototype._init.call(this, orientation, panel_height, instance_id);
+    _init: function(orientation, panel_height, instance_id, metadata) {
+        // global.logError("PALEL HEIGHT: " + panel_height)
+        // global.logError("INSTANCE ID: " + instance_id+ "UUID: " + metadata.uuid)
+        Applet.Applet.prototype._init.call(this, orientation, panel_height, instance_id, metadata);
 
         try {
             // Store panel height to use full available height
             this.panel_height = panel_height;
+            this.uuid = metadata.uuid;
+            this.instance_id = instance_id;
             
+            // eslint-disable-next-line no-undef
             this.set_applet_tooltip(_("CMD Chart Applet"));
 
             // Initialize settings
-            this.settings = new Settings.AppletSettings(this, "cmd-chart-applet@cinnamon", instance_id);
+            // this.settings = new Settings.AppletSettings(this, "cmd-chart-applet@cinnamon", instance_id);
+            this.settings = new Settings.AppletSettings(this, this.uuid, instance_id);
             this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL,
                                      "command", "command", this.on_settings_changed, null);
             this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL,
@@ -75,6 +89,7 @@ CmdChartApplet.prototype = {
             this.menu.addMenuItem(this._contentSection);
 
             // Add preferences menu item
+            // eslint-disable-next-line no-undef
             let prefsItem = new PopupMenu.PopupMenuItem(_("Preferences"));
             prefsItem.connect('activate', Lang.bind(this, this.openPreferences));
             this.menu.addMenuItem(prefsItem);
@@ -339,6 +354,9 @@ CmdChartApplet.prototype = {
             
             // Execute command synchronously
             let [success, stdout, stderr] = GLib.spawn_command_line_sync(cmd);
+            if (stderr != "") {
+                global.log("CMD Chart Applet: command '" + cmd + "' error: '" + stderr + "'");
+            }
 
             if (success && stdout) {
                 this.lastOutput = stdout.toString().trim();
@@ -371,6 +389,7 @@ CmdChartApplet.prototype = {
             }
         }
 
+        // eslint-disable-next-line no-undef
         this.set_applet_tooltip(_("CMD: " + this.lastOutput));
         return true; // Continue the timer
     },
@@ -539,7 +558,7 @@ CmdChartApplet.prototype = {
                         let extents = cr.textExtents(element.text);
                         textWidth = extents.width;
                         textHeight = extents.height;
-                    } catch (e) {
+                    } catch {
                         // Fall back to estimation
                         textWidth = element.text.length * (fontSize * 0.6);
                         textHeight = fontSize;
@@ -624,7 +643,7 @@ CmdChartApplet.prototype = {
     },
 
     openPreferences: function() {
-        Util.spawn(['cinnamon-settings', 'applets', 'cmd-chart-applet@cinnamon']);
+        Util.spawn(['cinnamon-settings', 'applets', this.uuid, this.instance_id]);
     },
 
     on_applet_removed_from_panel: function() {
@@ -636,6 +655,7 @@ CmdChartApplet.prototype = {
     }
 };
 
+// eslint-disable-next-line no-unused-vars
 function main(metadata, orientation, panel_height, instance_id) {
-    return new CmdChartApplet(orientation, panel_height, instance_id);
+    return new CmdChartApplet(orientation, panel_height, instance_id, metadata);
 }
