@@ -1,0 +1,68 @@
+<schemalist>
+  <!-- IMPORTANT: Do NOT include a 'path' attribute here -->
+  <schema id="org.mate.panel.applet.CmdChartApplet">
+    
+    <key name="command" type="s">
+      <default>'echo "CR:g TXTC:o:test"'</default>
+      <summary>Command</summary>
+      <description>Command to be executed. Its output is the chart description.</description>
+    </key>
+
+    <key name="update-interval" type="i">
+      <default>60</default>
+      <summary>Update interval (sec)</summary>
+      <description>Command run interval in seconds.</description>
+    </key>
+    <key name="chart-width" type="i">
+      <default>100</default>
+      <summary>Chart width</summary>
+      <description>Chart width</description>
+    </key>
+    <key name="bar-width" type="i">
+      <default>8</default>
+      <summary>Bar width</summary>
+      <description>Width of the bars on chart</description>
+    </key>
+    <key name="chart-area-transparency" type="d">
+      <default>0.2</default>
+      <range min="0.0" max="1.0"/>
+      <summary>Chart area transparency</summary>
+      <description>Chart area transparency</description>
+    </key>
+    <key name="font-family" type="s">
+      <default>"Sans"</default>
+      <summary>Font family</summary>
+      <description>Font family</description>
+    </key>
+    <key name="font-size" type="i">
+      <default>10</default>
+      <summary>Font size</summary>
+      <description>Font size</description>
+    </key>
+    <key name="font-color" type="s">
+      <default>"#EEEEEE"</default>
+      <summary>Font color</summary>
+      <description>Font color</description>
+    </key>
+    <key name="enable-font-shadow" type="b">
+      <default>false</default>
+      <summary>Enable font shadow</summary>
+      <description>Enable font shadow</description>
+    </key>
+    <key name="font-shadow-color" type="s">
+      <default>"#101010"</default>
+      <summary>Font shadow color</summary>
+      <description>Font shadow color</description>
+    </key>
+    <key name="enable-log" type="b">
+      <default>false</default>
+      <summary>Enable logging</summary>
+      <description>Enable logging</description>
+    </key>
+    <key name="cmd-timeout" type="i">
+      <default>10</default>
+      <summary>Command timeout (sec)</summary>
+      <description>Command timeout (sec)</description>
+    </key>
+  </schema>
+</schemalist>

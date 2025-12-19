@@ -9,6 +9,8 @@ sudo cp cmd-chart-applet.py /usr/lib/mate-applets/
 sudo cp org.mate.panel.CmdChartApplet.mate-panel-applet /usr/share/mate-panel/applets/
 sudo cp cmd-chart-applet.desktop /usr/share/applications/
 sudo cp org.mate.panel.applet.CmdChartAppletFactory.service /usr/share/dbus-1/services/
+sudo cp org.mate.panel.applet.CmdChartApplet.gschema.xml /usr/share/glib-2.0/schemas/
+sudo glib-compile-schemas /usr/share/glib-2.0/schemas/
 
 # Set proper permissions
 sudo chmod +x /usr/lib/mate-applets/cmd-chart-applet.py
