@@ -129,7 +129,7 @@ class CmdChartApplet():
         # Calculate line height
         num_lines = len(self.parsed_data)
         line_height = height / num_lines if num_lines > 0 else height
-        line_width = self.applet.settings.get_int("chart-width")
+        line_width = width  # self.applet.settings.get_int("chart-width")
 
         # Draw each line
         for line_idx, line_elements in enumerate(self.parsed_data):
@@ -168,7 +168,7 @@ class CmdChartApplet():
                     # Check width
                     if (
                         x_offset + self.applet.settings.get_int("bar-width") >
-                        self.applet.settings.get_int("chart-width")
+                        width  # self.applet.settings.get_int("chart-width")
                     ):
                         self.draw_overflow(
                             widget,
@@ -213,7 +213,7 @@ class CmdChartApplet():
                     # Check width
                     if (
                         x_offset + line_height >
-                        self.applet.settings.get_int("chart-width")
+                        width  # self.applet.settings.get_int("chart-width")
                     ):
                         self.draw_overflow(
                             widget,
@@ -282,7 +282,7 @@ class CmdChartApplet():
                     # Check width
                     if (
                         x_offset + extents.width >
-                        self.applet.settings.get_int("chart-width")
+                        width  # self.applet.settings.get_int("chart-width")
                     ):
                         self.draw_overflow(
                             widget,
@@ -347,21 +347,6 @@ class CmdChartApplet():
 
     def load_settings(self):
         """Load settings from config file or use defaults"""
-        # defaults = {
-        #     'command': "echo '2L| TXTC:#29c loading.... ||"
-        #                " CR:g BAR:0-100=50:k:g TXT:Status is OK'",
-        #     'update_interval': 60,
-        #     'chart_width': 100,
-        #     'bar_width': 8,
-        #     'chart_area_transparency': 0.3,
-        #     'font_family': 'Sans',
-        #     'font_size': 10,
-        #     'font_color': '#FFFFFF',
-        #     'enable_font_shadow': True,
-        #     'font_shadow_color': '#000000',
-        #     'enable_log': False,
-        #     'cmd_timeout': 10
-        # }
         try:
             self.settings = Gio.Settings.new_with_path(
                 "org.mate.panel.applet.CmdChartApplet",
@@ -374,61 +359,6 @@ class CmdChartApplet():
             #         defaults.update(settings)
         except Exception as e:
             self.log(f"Error loading settings: {e}", True)
-
-        # # Apply settings
-        # self.command = defaults['command']
-        # self.update_interval = defaults['update_interval']
-        # self.chart_width = defaults['chart_width']
-        # self.bar_width = defaults['bar_width']
-        # self.chart_area_transparency = defaults['chart_area_transparency']
-        # self.font_family = defaults['font_family']
-        # self.font_size = defaults['font_size']
-        # self.font_color = defaults['font_color']
-        # self.enable_font_shadow = defaults['enable_font_shadow']
-        # self.font_shadow_color = defaults['font_shadow_color']
-        # self.enable_log = defaults['enable_log']
-        # self.cmd_timeout = defaults['cmd_timeout']
-
-    # def save_settings(self):
-    #     """Save settings to config file"""
-    #     # settings = {
-    #     #     'command': self.command,
-    #     #     'update_interval': self.update_interval,
-    #     #     'chart_width': self.chart_width,
-    #     #     'bar_width': self.bar_width,
-    #     #     'chart_area_transparency': self.chart_area_transparency,
-    #     #     'font_family': self.font_family,
-    #     #     'font_size': self.font_size,
-    #     #     'font_color': self.font_color,
-    #     #     'enable_font_shadow': self.enable_font_shadow,
-    #     #     'font_shadow_color': self.font_shadow_color,
-    #     #     'enable_log': self.enable_log,
-    #     #     'cmd_timeout': self.cmd_timeout
-    #     # }
-
-    #     try:
-    #         settings = Gio.Settings.new_with_path(
-    #             "org.mate.panel.applet.CmdChartApplet",
-    #             self.config_path)
-    #         settings.command = self.command
-    #         settings.update_interval = self.update_interval
-    #         settings.chart_width = self.chart_width
-    #         settings.bar_width = self.bar_width
-    #         settings.chart_area_transparency = self.chart_area_transparency
-    #         settings.font_family = self.font_family
-    #         settings.font_size = self.font_size
-    #         settings.font_color = self.font_color
-    #         settings.enable_font_shadow = self.enable_font_shadow
-    #         settings.font_shadow_color = self.font_shadow_color
-    #         settings.enable_log = self.enable_log
-    #         settings.cmd_timeout = self.cmd_timeout
-    #         # os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
-    #         # with open(self.config_file, 'w') as f:
-    #         #     json.dump(settings, f, indent=2)
-    #         self.log("Settings saved")
-    #         self.update_chart()
-    #     except Exception as e:
-    #         self.log(f"Error saving settings: {e}", True)
 
     def setup_menu(self):
         """Setup the context menu for the applet"""
@@ -489,198 +419,19 @@ class CmdChartApplet():
             self.applet.settings.set_double(
                 "chart-area-transparency",
                 new_values["chart-area-transparency"])
+            GLib.timeout_add(
+                new_values["update-interval"]*1000,
+                self.update_chart)
 
             self.log("Settings saved successfully.")
+            #self.drawing_area.set_size_request(
+            #        self.applet.settings.get_int("chart-width")
+            #        )
             self.drawing_area.queue_draw()
         else:
             self.log("Changes discarded.")
 
         dialog.destroy()
-
-    # def old_show_preferences(self, action):
-    #     """Show the preferences dialog"""
-    #     dialog = Gtk.Dialog(
-    #         title="Cmd Chart Applet Preferences",
-    #         parent=None,
-    #         flags=0
-    #     )
-    #     dialog.add_buttons(
-    #         Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-    #         Gtk.STOCK_OK, Gtk.ResponseType.OK
-    #     )
-    #     dialog.set_default_size(500, 400)
-
-    #     content = dialog.get_content_area()
-    #     content.set_spacing(10)
-    #     content.set_margin_start(10)
-    #     content.set_margin_end(10)
-    #     content.set_margin_top(10)
-    #     content.set_margin_bottom(10)
-
-    #     # Create a grid for settings
-    #     grid = Gtk.Grid()
-    #     grid.set_column_spacing(10)
-    #     grid.set_row_spacing(10)
-
-    #     row = 0
-
-    #     # Command
-    #     label = Gtk.Label(label="Command:", xalign=0)
-    #     command_entry = Gtk.Entry()
-    #     command_entry.set_text(self.command)
-    #     command_entry.set_hexpand(True)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(command_entry, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Update interval
-    #     label = Gtk.Label(label="Update Interval (sec):", xalign=0)
-    #     cmd_spin = Gtk.SpinButton()
-    #     cmd_spin.set_range(1, 30000)
-    #     cmd_spin.se1t_increments(1, 5)
-    #     cmd_spin.set_value(self.cmd_timeout)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(cmd_spin, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Update timeout
-    #     label = Gtk.Label(label="Command timeout (sec):", xalign=0)
-    #     interval_spin = Gtk.SpinButton()
-    #     interval_spin.set_range(1, 30000)
-    #     interval_spin.set_increments(1, 5)
-    #     interval_spin.set_value(self.cmd_timeout)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(interval_spin, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Chart width
-    #     label = Gtk.Label(label="Chart Width:", xalign=0)
-    #     width_spin = Gtk.SpinButton()
-    #     width_spin.set_range(50, 1000)
-    #     width_spin.set_increments(10, 50)
-    #     width_spin.set_value(self.chart_width)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(width_spin, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Bar width
-    #     label = Gtk.Label(label="Bar Width:", xalign=0)
-    #     bar_width_spin = Gtk.SpinButton()
-    #     bar_width_spin.set_range(2, 50)
-    #     bar_width_spin.set_increments(1, 5)
-    #     bar_width_spin.set_value(self.bar_width)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(bar_width_spin, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Transparency
-    #     label = Gtk.Label(label="Background Transparency:", xalign=0)
-    #     transparency_spin = Gtk.SpinButton()
-    #     transparency_spin.set_range(0, 1)
-    #     transparency_spin.set_increments(0.1, 0.1)
-    #     transparency_spin.set_digits(1)
-    #     transparency_spin.set_value(self.chart_area_transparency)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(transparency_spin, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Font family
-    #     label = Gtk.Label(label="Font Family:", xalign=0)
-    #     font_entry = Gtk.Entry()
-    #     font_entry.set_text(self.font_family)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(font_entry, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Font size
-    #     label = Gtk.Label(label="Font Size:", xalign=0)
-    #     font_size_spin = Gtk.SpinButton()
-    #     font_size_spin.set_range(6, 48)
-    #     font_size_spin.set_increments(1, 2)
-    #     font_size_spin.set_value(self.font_size)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(font_size_spin, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Font color
-    #     label = Gtk.Label(label="Font Color:", xalign=0)
-    #     font_color_button = Gtk.ColorButton()
-    #     rgba = Gdk.RGBA()
-    #     rgba.parse(self.font_color)
-    #     font_color_button.set_rgba(rgba)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(font_color_button, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Enable shadow
-    #     label = Gtk.Label(label="Enable Font Shadow:", xalign=0)
-    #     shadow_check = Gtk.CheckButton()
-    #     shadow_check.set_active(self.enable_font_shadow)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(shadow_check, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Shadow color
-    #     label = Gtk.Label(label="Shadow Color:", xalign=0)
-    #     shadow_color_button = Gtk.ColorButton()
-    #     rgba = Gdk.RGBA()
-    #     rgba.parse(self.font_shadow_color)
-    #     shadow_color_button.set_rgba(rgba)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(shadow_color_button, 1, row, 1, 1)
-    #     row += 1
-
-    #     # Enable logging
-    #     label = Gtk.Label(label="Enable Logging:", xalign=0)
-    #     shadow_check = Gtk.CheckButton()
-    #     shadow_check.set_active(self.enable_log)
-    #     grid.attach(label, 0, row, 1, 1)
-    #     grid.attach(shadow_check, 1, row, 1, 1)
-    #     row += 1
-
-    #     content.pack_start(grid, True, True, 0)
-    #     dialog.show_all()
-
-    #     response = dialog.run()
-
-    #     if response == Gtk.ResponseType.OK:
-    #         # Save new settings
-    #         self.command = command_entry.get_text()
-    #         self.update_interval = int(interval_spin.get_value())
-    #         self.cmd_timeout = int(cmd_spin.get_value())
-    #         self.chart_width = int(width_spin.get_value())
-    #         self.bar_width = int(bar_width_spin.get_value())
-    #         self.chart_area_transparency = transparency_spin.get_value()
-    #         self.font_family = font_entry.get_text()
-    #         self.font_size = int(font_size_spin.get_value())
-
-    #         # Get colors as hex
-    #         rgba = font_color_button.get_rgba()
-    #         self.font_color = "#{:02x}{:02x}{:02x}".format(
-    #             int(rgba.red * 255),
-    #             int(rgba.green * 255),
-    #             int(rgba.blue * 255))
-
-    #         self.enable_font_shadow = shadow_check.get_active()
-
-    #         rgba = shadow_color_button.get_rgba()
-    #         self.font_shadow_color = "#{:02x}{:02x}{:02x}".format(
-    #             int(rgba.red * 255),
-    #             int(rgba.green * 255),
-    #             int(rgba.blue * 255))
-
-    #         # Save to file
-    #         self.save_settings()
-
-    #         # Apply changes
-    #         self.drawing_area.set_size_request(self.chart_width, 50)
-    #         self.drawing_area.queue_draw()
-
-    #         # Restart timer with new interval
-    #         # (you may want to store the timer ID and
-    #         # remove the old one first)
-
-    #     dialog.destroy()
 
     def show_about(self, action):
         """Show the about dialog"""
