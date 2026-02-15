@@ -1,16 +1,15 @@
-# CMD Chart Applet for Cinnamon
+# CMD Chart Applet for Cinnamon and MATE DE
 
-A versatile Cinnamon desktop applet that executes shell commands periodically and displays visual charts based on command output. Perfect for system monitoring, status displays, and custom information panels.
+A versatile Cinnamon/Mate desktop applet that executes shell commands periodically and displays visual charts based on command output. Perfect for system monitoring, status displays, and custom information panels.
 
 ## Features
 
 - 🔄 **Periodic Command Execution** - Run any shell command at configurable intervals (1-3600 seconds)
-- 📊 **Visual Elements** - Display circles, bars, and text labels based on command output
+- 📊 **Visual Elements** - Display graph, circles, bars, and text labels based on command output
 - 🎨 **Color Support** - Named colors (r, g, b, y, etc.) and hex RGB values (#RGB, #RRGGBB)
-- 🌐 **Text with Spaces** - Use pipe separator `|` to allow natural text with spaces
+- 🌐 **Text with Spaces** - Use pipe separator ` |` (note space!) to allow natural text with spaces
 - 😀 **Emoji Support** - Full emoji support with proper fonts (Noto Color Emoji, Symbola, but depends on cairo verion!)
 - 🎨 **Customizable Appearance** - Font selection, colors, transparency, dimensions
-- ⚡ **Auto-sizing** - Automatically uses full panel height
 - 📝 **Multiple Examples** - Includes system monitor, compact, and emoji examples
 
 ## Installation
@@ -18,21 +17,20 @@ A versatile Cinnamon desktop applet that executes shell commands periodically an
 ### Quick Install
 
 ```bash
-./install-cinnamon.sh
-```
-
-### Manual Installation
-
-```bash
-mkdir -p ~/.local/share/cinnamon/applets/
-cp -r cmd-chart-applet@cinnamon ~/.local/share/cinnamon/applets/
+./install-cinnamon.sh  # for cinnamon DE
+./install-mate.shi     # for mate DE
 ```
 
 ### Activate
 
+For cinnamon:
 1. **Restart Cinnamon**: Press `Alt+F2`, type `r`, press `Enter`
 2. **Add Applet**: Right-click panel → Applets → Find "CMD Chart Applet" → Click `+`
 3. **Configure**: Right-click applet → Configure
+
+For mate:
+1. **Add Applet**: Right-click panel → Add to panel → Find "CMD Chart Applet" → Click `+`
+2. **Configure**: Right-click applet → Preferences
 
 ## Configuration
 
@@ -50,10 +48,12 @@ cp -r cmd-chart-applet@cinnamon ~/.local/share/cinnamon/applets/
 | **Font Color** | White | Color for text |
 | **Font Shadow** | Enabled | Text shadow for readability |
 | **Background Transparency** | 0.3 | Chart background opacity |
+| **Graph Transparency** | 0.3 | Graph background opacity |
+| **Graph Pionts** | 16 | Graph points to display |
 
 ## Command Output Format
 
-Commands output **space-separated** or **pipe-separated** elements:
+Commands output **pipe-separated** elements:
 
 ### Element Types
 
@@ -101,8 +101,6 @@ echo "TXT:Hello World"      # With spaces (use pipe separator, see below)
 
 Displays text with a custom color. The separator between color and text is optional (colon or space). Text can contain colons.
 
-**Color codes:** `r` (red), `o` (orange), `y` (yellow), `g` (green), `b` (blue), `v` (violet), `p` (pink), `w` (white), `k` (black), or `#RGB`/`#RRGGBB` hex
-
 **Example:**
 
 ```bash
@@ -114,13 +112,25 @@ echo "TXTC:g Load:2.5"         # Shows "Load:2.5" in green
 echo "TXTC:#FF00FF Custom"     # Custom magenta color (hex)
 ```
 
-#### 5. Two-Line Mode: `2L|`
+#### 5. Graph: `GR:color:value` or `GR:color:value:min:max`
 
-Displays elements in two rows with horizontal bars instead of vertical.
+Draws graph on the background of the chart. Values are saved in a history file, by default last 16 are shown.
 
-**Format:** `2L| top line elements || bottom line elements`
+!! IMPORTANT !! Only one graph is supported, multiple GR elemets will be shown incorrectly.
 
-- Starts with `2L|` marker
+**Example:**
+
+```bash
+echo "GR:r:25"                 # Red graph, last value = 25
+echo "GR:#005500:17:0:100"     # Light green graph, last value is 17, min/max = 0/100
+```
+
+#### 5. Multi-Line Mode
+
+Displays elements in two or more rows with horizontal bars instead of vertical. More than 2 rows are not recommended.
+
+**Format:** `top line elements || bottom line elements`
+
 - Top and bottom lines separated by `||`
 - Bars are horizontal (length = full panel height - 2px)
 - Allows twice as much information
@@ -129,7 +139,7 @@ Displays elements in two rows with horizontal bars instead of vertical.
 **Example:**
 
 ```bash
-echo "2L| CR:g TXT:Load BAR:0-5=2.3:k:o || TXT:Mem BAR:0-100=60:k:b TXT:60%"
+echo "CR:g | TXT:Load | BAR:0-5=2.3:k:o || TXT:Mem | BAR:0-100=60:k:b | TXT:60%"
 ```
 
 **Result:**
@@ -137,24 +147,6 @@ echo "2L| CR:g TXT:Load BAR:0-5=2.3:k:o || TXT:Mem BAR:0-100=60:k:b TXT:60%"
 Top:    🟢 Load ▓▓▓▓▓░░░░░░░
 Bottom: Mem ▓▓▓▓▓▓░░░░ 60%
 ```
-
-### Separator Options
-
-**Space Separator (simple):**
-
-```bash
-echo "CR:g TXT:OK BAR:0-100=50:k:g"
-```
-
-Note: Text cannot contain spaces with this method.
-
-**Pipe Separator (allows spaces in text):**
-
-```bash
-echo "CR:g | TXT:Status is OK | BAR:0-100=50:k:g"
-```
-
-Note: Pipe `|` allows natural text with spaces.
 
 ## Usage Examples
 
@@ -232,7 +224,7 @@ top="CR:g | TXT:Load | BAR:0-5=${load}:k:o | TXT:${temp}°C | BAR:0-100=${temp}:
 # Bottom line: Memory and disk
 bottom="TXT:Mem | BAR:0-100=${mem}:k:b | TXT:${mem}% | TXT:Disk | BAR:0-100=${disk}:k:y"
 
-echo "2L|${top}||${bottom}"
+echo "${top}||${bottom}"
 ```
 
 ## Included Example Scripts
@@ -321,9 +313,9 @@ Demonstrates 2-line mode with horizontal bars.
 
 ### Useful Emojis
 
-**Status:** ✅ ❌ ⚠️ ℹ️  
-**Levels:** 🟢 🟡 🔴 🔵  
-**System:** 💾 🌡️ 📊 ⚡ 🔋 📈 📉 🖥️ 🌐  
+**Status:** ✅ ❌ ⚠️  ℹ️ 
+**Levels:** 🟢 🟡 🔴 🔵
+**System:** 💾 🌡️ 📊 ⚡ 🔋 📈 📉 🖥️ 🌐
 
 ## Logging
 
@@ -346,7 +338,8 @@ When enabled in settings, logs all operations:
 
 ```bash
 # Monitor logs in real-time
-journalctl -f | grep "CMD Chart"
+journalctl -f | grep "CMD Chart" # Cinnamon version
+journalctl -f | grep "CmdChartApplet" # Mate version
 ```
 
 ## Troubleshooting
@@ -358,8 +351,9 @@ journalctl -f | grep "CMD Chart"
 **Solution:**
 
 1. Right-click applet → Configure
-2. Increase "Chart width" to 250-300 pixels
+2. Increase "Chart width"
 3. Click OK
+4. Restart Cinnamon or Mate panel
 
 Enable verbose logging and monitor logs:
 
@@ -381,24 +375,9 @@ Should produce valid format like: `CR:g | TXT:OK | BAR:0-100=50:k:g`
 
 **Common issues:**
 
-- Missing separators (spaces or pipes)
+- Missing separators (note space before pipe!)
 - Invalid color codes
 - Malformed BAR syntax
-
-### Command Not Executing
-
-**Check logs:**
-
-```bash
-journalctl -f | grep "CMD Chart"
-```
-
-**Solutions:**
-
-- Use full paths to commands
-- Test command manually first
-- Check execute permissions on script files
-- Verify command produces output
 
 ### Emojis Show as Boxes
 
@@ -415,7 +394,7 @@ journalctl -f | grep "CMD Chart"
 
 1. Check "Update interval" setting
 2. Ensure command completes successfully
-3. Restart Cinnamon (Alt+F2, 'r', Enter)
+3. Restart Cinnamon (Alt+F2, 'r', Enter) or Mate panel (mate-panel --replace &)
 4. Check logs for errors
 
 ## Utility Scripts

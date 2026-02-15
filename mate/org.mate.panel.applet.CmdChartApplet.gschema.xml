@@ -64,5 +64,21 @@
       <summary>Command timeout (sec)</summary>
       <description>Command timeout (sec)</description>
     </key>
+    <key name="graph-transparency" type="d">
+      <range min="0.0" max="1.0"/>
+      <default>0.3</default>
+      <summary>Graph transparency</summary>
+      <description>Graph transparency</description>
+    </key>
+    <key name="history-len" type="i">
+      <default>16</default>
+      <summary>Graph history length</summary>
+      <description>Graph history length</description>
+    </key>
+    <key name="verbose" type="b">
+      <default>false</default>
+      <summary>Verbose logging</summary>
+      <description>Verbose logging</description>
+    </key>
   </schema>
 </schemalist>
