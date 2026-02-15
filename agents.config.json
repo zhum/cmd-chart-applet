@@ -1,0 +1,13 @@
+{
+  "nanocoder": {
+    "providers": [
+      {
+        "name": "ollama",
+        "models": [
+          "qwen2.5-coder:7b-instruct-q8_0"
+        ],
+        "baseUrl": "http://localhost:11434/v1"
+      }
+    ]
+  }
+}
