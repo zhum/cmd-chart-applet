@@ -294,9 +294,13 @@ CmdChartApplet.prototype = {
                             this.history.shift();
                         }
                         let historyText = this.history.join('\n');
+                        // append value to the file, do not overwrite it AI!
                         GLib.file_set_contents(this.historyFilePath, historyText);
                         this.graphColor = color;
                     }
+                }
+                else {
+                    global.log("Bad GR format: '"+token+"'");
                 }
             }
         }
