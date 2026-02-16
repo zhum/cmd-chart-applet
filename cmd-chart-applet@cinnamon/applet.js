@@ -293,6 +293,7 @@ CmdChartApplet.prototype = {
                         if (this.history.length > 128) {
                             this.history.shift();
                         }
+                        // do not replace history file content, just append last value AI!
                         let historyText = this.history.join('\n');
                         GLib.file_set_contents(this.historyFilePath, historyText);
                         this.graphColor = color;
