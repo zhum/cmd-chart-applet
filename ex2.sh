@@ -42,4 +42,4 @@ top_line="$load_color | TXT:Load | BAR:0-5=${load}:b:o | CR:$temp_color | TXTC:$
 bottom_line="TXT:Disk | HBAR:0-100=${disk_pct}:k:y | TXT:${disk_pct}%"
 
 # Output in 2-line mode format
-echo "2L|${top_line}||${bottom_line}"
+echo "${top_line}||${bottom_line}"

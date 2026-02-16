@@ -8,6 +8,8 @@ const Lang = imports.lang;
 const Settings = imports.ui.settings;
 const Mainloop = imports.mainloop;
 const Cairo = imports.cairo;
+const Gio = imports.gi.Gio;
+const ByteArray = imports.byteArray;
 
 function CmdChartApplet(orientation, panel_height, instance_id, metadata) {
     this._init(orientation, panel_height, instance_id, metadata);
@@ -49,14 +51,20 @@ CmdChartApplet.prototype = {
                                      "font-shadow-color", "fontShadowColor", this.on_settings_changed, null);
             this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL,
                                      "verbose-logging", "verboseLogging", this.on_settings_changed, null);
+            this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL,
+                                     "graph-points", "graphPoints", this.on_settings_changed, null);
 
             this.chartElements = [];
             this.lastOutput = "";
 
             // History for graph feature
             this.history = [];
-            this.historyFilePath = GLib.get_user_data_dir() + "/cmd-chart-applet/history.txt";
+            this.historyFilePath = GLib.get_user_data_dir() +
+                                   "/cmd-chart-applet/history" +
+                                   instance_id +
+                                   ".txt";
             this.graphColor = "g"; // default graph color
+            this.doDrawGraph = false;
 
             // Ensure history directory exists
             let historyDir = GLib.path_get_dirname(this.historyFilePath);
@@ -64,23 +72,29 @@ CmdChartApplet.prototype = {
                 GLib.mkdir_with_parents(historyDir, 0o755);
             }
 
-            // Load history from file if it exists
-            let [success, contents] = GLib.file_get_contents(this.historyFilePath);
-            if (success) {
-                let lines = contents.toString().split('\n');
-                for (let line of lines) {
-                    let val = parseFloat(line);
-                    if (!isNaN(val)) {
-                        this.history.push(val);
+            let file = Gio.File.new_for_path(this.historyFilePath);
+            try {
+                let [success, contents] = file.load_contents(null);
+                if (success) {
+                    let text = ByteArray.toString(contents);
+                    let lines = text.split('\n');
+                    for (let line of lines) {
+                        let val = parseFloat(line);
+                        if (!isNaN(val)) {
+                            this.history.push(val);
+                        }
+                    }
+                    let points = this.graphPoints || 16;
+                    if (this.history.length > points) {
+                        this.history = this.history.slice(-points);
                     }
                 }
-                // Keep only last 128 entries
-                if (this.history.length > 128) {
-                    this.history = this.history.slice(this.history.length - 128);
-                }
+            } catch (e) {
+                // File likely doesn't exist yet, which is fine
+                this.error("CMD Chart Applet: No history file found to load ("+e+")");
             }
 
-            global.log("CMD Chart Applet: Starting applet (instance " + instance_id + ")");
+            this.error("CMD Chart Applet: Starting applet (instance " + instance_id + ")");
 
             this.panelChartActor = new St.DrawingArea({
                 width: this.chartWidth || 200,
@@ -104,8 +118,20 @@ CmdChartApplet.prototype = {
             this.setupTimer();
 
         } catch (e) {
-            global.logError(e);
+            this.error(e);
         }
+    },
+
+    // Log only if verbose logging is enabled in settings
+    log: function(message) {
+        if (this.verboseLogging) {
+            global.log(this.uuid + ": " + message);
+        }
+    },
+
+    // Always log errors, regardless of settings
+    error: function(message) {
+        global.logError(this.uuid + " ERROR: " + message);
     },
 
     setupTimer: function() {
@@ -121,7 +147,7 @@ CmdChartApplet.prototype = {
     },
 
     on_settings_changed: function() {
-        global.log("CMD Chart Applet: Settings changed");
+        this.log("CMD Chart Applet: Settings changed");
         this.setupTimer();
         this.rebuildPanelChart();
         this.executeCommand();
@@ -196,6 +222,15 @@ CmdChartApplet.prototype = {
         let usePipeSeparator = output.includes('|');
         let lines = output.split('||');
         return lines.map(l => this.parseElementLine(l, usePipeSeparator));
+    },
+
+    appendToFile: function(filePath, content) {
+        let file = Gio.File.new_for_path(filePath);
+        // append_to(flags, cancellable)
+        // Gio.FileCreateFlags.NONE is standard; creates file if it doesn't exist
+        let outStream = file.append_to(Gio.FileCreateFlags.NONE, null);
+        outStream.write_all(content, null);
+        outStream.close(null);
     },
 
     parseElementLine: function(output, usePipeSeparator) {
@@ -287,15 +322,22 @@ CmdChartApplet.prototype = {
                 let parts = rest.split(':');
                 if (parts.length >= 2) {
                     let color = parts[0];
-                    let value = parseInt(parts[1], 10);
+                    let value = parseFloat(parts[1]);
+                    this.doDrawGraph = true;
                     if (!isNaN(value)) {
                         this.history.push(value);
-                        if (this.history.length > 128) {
+                        if (this.history.length > this.graphPoints) {
                             this.history.shift();
                         }
                         // Append only the new value to the history file
-                        GLib.file_set_contents(this.historyFilePath, value.toString() + '\n', GLib.FileSetContentsFlags.APPEND);
+                        this.appendToFile(
+                            this.historyFilePath,
+                            value.toString() + '\n');
                         this.graphColor = color;
+                    }
+                    if (parts.length > 3) {
+                        this.graphMin = parseFloat(parts[2]);
+                        this.graphMax = parseFloat(parts[3]);
                     }
                 }
             }
@@ -308,46 +350,51 @@ CmdChartApplet.prototype = {
         try {
             let cmd = this.command || 'echo "CR:g"';
 
-            if (this.verboseLogging) {
-                global.log("CMD Chart Applet: Executing command: " + cmd);
+            this.log("CMD Chart Applet: Executing async command: " + cmd);
+
+            // Split the command string into an array for Gio.Subprocess
+            let [success, argv] = GLib.shell_parse_argv(cmd);
+            
+            if (!success) {
+                throw new Error("Failed to parse command arguments");
             }
 
-            let [success, stdout, stderr] = GLib.spawn_command_line_sync(cmd);
-            if (stderr != "") {
-                global.log("CMD Chart Applet: command '" + cmd + "' error: '" + stderr + "'");
-            }
+            let proc = new Gio.Subprocess({
+                argv: argv,
+                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
+            });
 
-            if (success && stdout) {
-                this.lastOutput = stdout.toString().trim();
-                this.chartElements = this.parseCommandOutput(this.lastOutput);
+            proc.init(null);
 
-                if (this.verboseLogging) {
-                    global.log("CMD Chart Applet: Command output: " + this.lastOutput);
-                    global.log("CMD Chart Applet: parsed " +
-                        this.chartElements.length +
-                        " elements: " +
-                        this.chartElements.map(e => JSON.stringify(e)));
-                }
+            // Run the process and capture output asynchronously
+            proc.communicate_utf8_async(null, null, (obj, res) => {
+                try {
+                    let [success, stdout, stderr] = obj.communicate_utf8_finish(res);
 
-                if (this.panelChartActor) {
-                    if (this.verboseLogging) {
-                        global.log("CMD Chart Applet: Requesting repaint");
+                    if (stderr && stderr.trim() !== "") {
+                        this.error("CMD Chart Applet error: " + stderr);
                     }
-                    this.panelChartActor.queue_repaint();
+
+                    if (success && stdout) {
+                        this.lastOutput = stdout.trim();
+                        this.chartElements = this.parseCommandOutput(this.lastOutput);
+
+                        if (this.panelChartActor) {
+                            this.panelChartActor.queue_repaint();
+                        }
+                        this.set_applet_tooltip(_("CMD: " + this.lastOutput));
+                    }
+                } catch (e) {
+                    this.error("CMD Chart Applet Callback Error: " + e);
                 }
-            }
+            });
 
         } catch (e) {
-            global.logError("CMD Chart Applet: Error executing command: " + e);
+            this.error("CMD Chart Applet Spawn Error: " + e);
             this.set_applet_tooltip("Error executing command");
-            this.chartElements = [];
-            if (this.panelChartActor) {
-                this.panelChartActor.queue_repaint();
-            }
         }
 
-        this.set_applet_tooltip(_("CMD: " + this.lastOutput));
-        return true;
+        return true; // Keep the Mainloop timer running
     },
 
     drawPanelChart: function(area) {
@@ -363,16 +410,12 @@ CmdChartApplet.prototype = {
         this.drawGraph(cr, width, height);
 
         if (!this.chartElements || this.chartElements.length === 0) {
-            if (this.verboseLogging) {
-                global.log("CMD Chart Applet: No elements to draw");
-            }
+            this.log("CMD Chart Applet: No elements to draw");
             return;
         }
 
         let num_lines = this.chartElements.length;
-        if (this.verboseLogging) {
-            global.log("CMD Chart Applet: draw lines: " + num_lines);
-        }
+        this.log("CMD Chart Applet: draw lines: " + num_lines);
 
         let spacing = 4;
         let currentX = spacing;
@@ -385,19 +428,21 @@ CmdChartApplet.prototype = {
             let y_offset = l * lineHeight;
             let line = this.chartElements[l];
             currentX = spacing;
-            global.log("CMD Chart Applet: line "+ l + ": " + JSON.stringify(line));
+            this.log("CMD Chart Applet: line "+ l + ": " + JSON.stringify(line));
             for (let i = 0; i < line.length; i++) {
                 let element = line[i];
-                global.log("CMD Chart Applet: line " + l + " element "+ i + ": " + JSON.stringify(element));
+                this.log("CMD Chart Applet: line " + l + " element "+ i + ": " + JSON.stringify(element));
                 if (element.type === 'circle') {
                     let radius = Math.min(lineHeight / 2 - 2, 10);
                     let centerX = currentX + radius;
                     let centerY = y_offset + lineHeight / 2;
 
                     if (centerX + radius + overflowIndicatorWidth > width) {
-                        if (this.verboseLogging) {
-                            global.log("CMD Chart Applet: Out of space for circle at element " + i + "/" + this.chartElements.length);
-                        }
+                        this.log(
+                            "CMD Chart Applet: Out of space for circle at element " +
+                            i +
+                            "/" +
+                            this.chartElements.length);
                         hasOverflow = true;
                         break;
                     }
@@ -507,16 +552,14 @@ CmdChartApplet.prototype = {
                     let textY = y_offset + lineHeight / 2 + textHeight / 2;
 
                     if (textX + textWidth + overflowIndicatorWidth > width) {
-                        if (this.verboseLogging) {
-                            global.log("CMD Chart Applet: Out of space for text '" + 
-                                element.text + 
-                                "', line " +
-                                l +
-                                " at element " + 
-                                i + 
-                                " of " + 
-                                this.chartElements.length);
-                        }
+                        this.log("CMD Chart Applet: Out of space for text '" + 
+                            element.text + 
+                            "', line " +
+                            l +
+                            " at element " + 
+                            i + 
+                            " of " + 
+                            this.chartElements.length);
                         hasOverflow = true;
                         break;
                     }
@@ -529,10 +572,8 @@ CmdChartApplet.prototype = {
             }
         }
 
-        if (this.verboseLogging) {
-            if (drawnElements < this.chartElements.length) {
-                global.log("CMD Chart Applet: WARNING - Not all elements fit! Increase chart width in settings.");
-            }
+        if (drawnElements < this.chartElements.length) {
+            this.error("CMD Chart Applet: WARNING - Not all elements fit! Increase chart width in settings.");
         }
 
         if (hasOverflow && currentX < width) {
@@ -541,7 +582,7 @@ CmdChartApplet.prototype = {
     },
 
     drawGraph: function(cr, width, height) {
-        if (!this.history || this.history.length < 2) {
+        if (!this.doDrawGraph || !this.history || this.history.length < 2) {
             return;
         }
 
@@ -550,8 +591,8 @@ CmdChartApplet.prototype = {
         cr.setLineWidth(2);
 
         let step = width / (this.history.length - 1);
-        let minVal = Math.min(...this.history);
-        let maxVal = Math.max(...this.history);
+        let minVal = (this.graphMin !== undefined) ? this.graphMin : Math.min(...this.history);
+        let maxVal = (this.graphMax !== undefined) ? this.graphMax : Math.max(...this.history);
         let range = maxVal - minVal || 1;
 
         cr.moveTo(0, height - ((this.history[0] - minVal) / range) * height);
@@ -602,13 +643,14 @@ CmdChartApplet.prototype = {
     },
 
     on_applet_removed_from_panel: function() {
-        global.log("CMD Chart Applet: Applet removed from panel");
+        this.log("CMD Chart Applet: Applet removed from panel");
         if (this.timeout) {
             Mainloop.source_remove(this.timeout);
         }
     }
 };
 
+// eslint-disable-next-line no-unused-vars
 function main(metadata, orientation, panel_height, instance_id) {
     return new CmdChartApplet(orientation, panel_height, instance_id, metadata);
 }

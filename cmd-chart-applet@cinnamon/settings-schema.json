@@ -32,6 +32,15 @@
         "description": "Bar width (pixels)",
         "tooltip": "Width of vertical bars in pixels"
     },
+    "graph-points": {
+        "type": "spinbutton",
+        "default": 16,
+        "min": 4,
+        "max": 256,
+        "step": 2,
+        "description": "Graph points",
+        "tooltip": "How many last points from history to draw on graph"
+    },
     "verbose-logging": {
         "type": "checkbox",
         "default": false,
