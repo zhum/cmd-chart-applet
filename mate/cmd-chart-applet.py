@@ -68,9 +68,9 @@ class CmdChartApplet():
         # History for graph feature
         self.do_draw_graph = False
         self.history = []
-        self.historyFilePath =  os.path.expanduser(
+        self.historyFilePath = os.path.expanduser(
             "~/.local/share/mate-applets/cmd-applet/history.txt")
-        self.graphColor = "g"  # default graph color
+        self.graph_color = "g"  # default graph color
         self.graph_min = None
         self.graph_max = None
 
@@ -92,21 +92,29 @@ class CmdChartApplet():
                     except Exception:
                         continue
                 # Keep only last history-len entries
-                if len(self.history) > self.settings.get_int("history-len"):
-                    self.history = self.history[-self.settings.get_int("history-len"):]
+                max_len = self.settings.get_int("history-len")
+                if len(self.history) > max_len:
+                    self.history = self.history[-max_len:]
             except Exception as e:
                 self.log(f"Error loading history: {e}", True)
 
         self.timer_id = None
-        self.settings.connect("changed::verbose", lambda s, k: setattr(self, 'verbose', s.get_boolean(k)))
-        self.settings.connect("changed::update-interval", self.on_interval_changed)
-        self.timer_id = GLib.timeout_add(self.settings.get_int("update-interval")*1000, self.update_chart)
+        self.settings.connect("changed::verbose",
+                              lambda s, k: setattr(self,
+                                                   'verbose',
+                                                   s.get_boolean(k)))
+        self.settings.connect("changed::update-interval",
+                              self.on_interval_changed)
+        self.timer_id = GLib.timeout_add(
+            self.settings.get_int("update-interval")*1000, self.update_chart)
         # set timer
         self.on_interval_changed(self.settings, "update-interval")
         # Redraw whenever any visual key changes
-        visual_keys = ["chart-width", "chart-area-transparency", "bar-width", "graph-transparency"]
+        visual_keys = ["chart-width", "chart-area-transparency",
+                       "bar-width", "graph-transparency"]
         for key in visual_keys:
-            self.settings.connect(f"changed::{key}", lambda s, k: self.drawing_area.queue_draw())
+            self.settings.connect(f"changed::{key}",
+                                  lambda s, k: self.drawing_area.queue_draw())
 
         self.update_chart()
 
@@ -450,7 +458,7 @@ class CmdChartApplet():
         )
         dialog.set_default_size(400, -1)
         dialog.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
-        
+
         notebook = Gtk.Notebook()
         notebook.set_border_width(10)
         dialog.get_content_area().add(notebook)
@@ -461,29 +469,43 @@ class CmdChartApplet():
 
         # Command
         entry_cmd = Gtk.Entry()
-        self.settings.bind("command", entry_cmd, "text", Gio.SettingsBindFlags.DEFAULT)
-        grid_gen.attach(Gtk.Label(label="Command:", xalign=0), 0, 0, 1, 1)
-        grid_gen.attach(entry_cmd, 1, 0, 1, 1)
+        self.settings.bind("command", entry_cmd, "text",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_gen.attach(Gtk.Label(label="Command:", xalign=0),
+                        0, 0, 1, 1)
+        grid_gen.attach(entry_cmd,
+                        1, 0, 1, 1)
 
         # Intervals
         spin_update = Gtk.SpinButton.new_with_range(1, 3600, 1)
-        self.settings.bind("update-interval", spin_update, "value", Gio.SettingsBindFlags.DEFAULT)
-        grid_gen.attach(Gtk.Label(label="Update Interval (s):", xalign=0), 0, 1, 1, 1)
-        grid_gen.attach(spin_update, 1, 1, 1, 1)
+        self.settings.bind("update-interval", spin_update, "value",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_gen.attach(Gtk.Label(label="Update Interval (s):", xalign=0),
+                        0, 1, 1, 1)
+        grid_gen.attach(spin_update,
+                        1, 1, 1, 1)
 
         spin_timeout = Gtk.SpinButton.new_with_range(1, 60, 1)
-        self.settings.bind("cmd-timeout", spin_timeout, "value", Gio.SettingsBindFlags.DEFAULT)
-        grid_gen.attach(Gtk.Label(label="Timeout (s):", xalign=0), 0, 2, 1, 1)
-        grid_gen.attach(spin_timeout, 1, 2, 1, 1)
+        self.settings.bind("cmd-timeout", spin_timeout, "value",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_gen.attach(Gtk.Label(label="Timeout (s):", xalign=0),
+                        0, 2, 1, 1)
+        grid_gen.attach(spin_timeout,
+                        1, 2, 1, 1)
 
         spin_history = Gtk.SpinButton.new_with_range(1, 256, 1)
-        self.settings.bind("history-len", spin_history, "value", Gio.SettingsBindFlags.DEFAULT)
-        grid_gen.attach(Gtk.Label(label="History points:", xalign=0), 0, 3, 1, 1)
-        grid_gen.attach(spin_history, 1, 3, 1, 1)
+        self.settings.bind("history-len", spin_history, "value",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_gen.attach(Gtk.Label(label="History points:", xalign=0),
+                        0, 3, 1, 1)
+        grid_gen.attach(spin_history,
+                        1, 3, 1, 1)
 
         verbose = Gtk.CheckButton(label="Verbose logging")
-        self.settings.bind("verbose", verbose, "active", Gio.SettingsBindFlags.DEFAULT)
-        grid_gen.attach(verbose, 1, 3, 1, 1)
+        self.settings.bind("verbose", verbose, "active",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_gen.attach(verbose,
+                        1, 3, 1, 1)
 
         # --- Tab 2: Appearance ---
         grid_app = Gtk.Grid(column_spacing=12, row_spacing=12, margin=12)
@@ -491,27 +513,43 @@ class CmdChartApplet():
 
         # Widths
         spin_width = Gtk.SpinButton.new_with_range(50, 2000, 10)
-        self.settings.bind("chart-width", spin_width, "value", Gio.SettingsBindFlags.DEFAULT)
-        grid_app.attach(Gtk.Label(label="Applet Width:", xalign=0), 0, 0, 1, 1)
-        grid_app.attach(spin_width, 1, 0, 1, 1)
+        self.settings.bind("chart-width", spin_width, "value",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_app.attach(Gtk.Label(label="Applet Width:", xalign=0),
+                        0, 0, 1, 1)
+        grid_app.attach(spin_width,
+                        1, 0, 1, 1)
 
         spin_bar = Gtk.SpinButton.new_with_range(1, 100, 1)
-        self.settings.bind("bar-width", spin_bar, "value", Gio.SettingsBindFlags.DEFAULT)
-        grid_app.attach(Gtk.Label(label="Bar Width:", xalign=0), 0, 1, 1, 1)
-        grid_app.attach(spin_bar, 1, 1, 1, 1)
+        self.settings.bind("bar-width", spin_bar, "value",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_app.attach(Gtk.Label(label="Bar Width:", xalign=0),
+                        0, 1, 1, 1)
+        grid_app.attach(spin_bar,
+                        1, 1, 1, 1)
 
         # Transparencies
-        adj_bg = Gtk.Adjustment(value=0.2, lower=0, upper=1, step_increment=0.05, page_increment=0.1)
-        scale_bg = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj_bg)
-        self.settings.bind("chart-area-transparency", adj_bg, "value", Gio.SettingsBindFlags.DEFAULT)
-        grid_app.attach(Gtk.Label(label="BG Transparency:", xalign=0), 0, 2, 1, 1)
-        grid_app.attach(scale_bg, 1, 2, 1, 1)
+        adj_bg = Gtk.Adjustment(value=0.2, lower=0, upper=1,
+                                step_increment=0.05, page_increment=0.1)
+        scale_bg = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL,
+                             adjustment=adj_bg)
+        self.settings.bind("chart-area-transparency", adj_bg, "value",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_app.attach(Gtk.Label(label="BG Transparency:", xalign=0),
+                        0, 2, 1, 1)
+        grid_app.attach(scale_bg,
+                        1, 2, 1, 1)
 
-        adj_graph = Gtk.Adjustment(value=0.3, lower=0, upper=1, step_increment=0.05, page_increment=0.1)
-        scale_graph = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj_graph)
-        self.settings.bind("graph-transparency", adj_graph, "value", Gio.SettingsBindFlags.DEFAULT)
-        grid_app.attach(Gtk.Label(label="Graph Transparency:", xalign=0), 0, 3, 1, 1)
-        grid_app.attach(scale_graph, 1, 3, 1, 1)
+        adj_graph = Gtk.Adjustment(value=0.3, lower=0, upper=1,
+                                   step_increment=0.05, page_increment=0.1)
+        scale_graph = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL,
+                                adjustment=adj_graph)
+        self.settings.bind("graph-transparency", adj_graph, "value",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_app.attach(Gtk.Label(label="Graph Transparency:", xalign=0),
+                        0, 3, 1, 1)
+        grid_app.attach(scale_graph,
+                        1, 3, 1, 1)
 
         # --- Tab 3: Font & Text ---
         grid_font = Gtk.Grid(column_spacing=12, row_spacing=12, margin=12)
@@ -520,8 +558,10 @@ class CmdChartApplet():
         # Font Selection (Combined Size/Family)
         font_btn = Gtk.FontButton()
         # Set initial value from current settings
-        current_font = f"{self.settings.get_string('font-family')} {self.settings.get_int('font-size')}"
+        current_font = (f"{self.settings.get_string('font-family')} "
+                        f"{self.settings.get_int('font-size')}")
         font_btn.set_font(current_font)
+
         def on_font_set(button):
             font_desc = button.get_font_desc()
             family = font_desc.get_family()
@@ -532,13 +572,17 @@ class CmdChartApplet():
             self.settings.set_int("font-size", int(size))
 
         font_btn.connect("font-set", on_font_set)
-        grid_font.attach(Gtk.Label(label="Font:", xalign=0), 0, 0, 1, 1)
-        grid_font.attach(font_btn, 1, 0, 1, 1)
+        grid_font.attach(Gtk.Label(label="Font:", xalign=0),
+                         0, 0, 1, 1)
+        grid_font.attach(font_btn,
+                         1, 0, 1, 1)
 
         # Shadow
         check_shadow = Gtk.CheckButton(label="Enable Shadow")
-        self.settings.bind("enable-font-shadow", check_shadow, "active", Gio.SettingsBindFlags.DEFAULT)
-        grid_font.attach(check_shadow, 1, 1, 1, 1)
+        self.settings.bind("enable-font-shadow", check_shadow, "active",
+                           Gio.SettingsBindFlags.DEFAULT)
+        grid_font.attach(check_shadow,
+                         1, 1, 1, 1)
 
         dialog.show_all()
         dialog.run()
@@ -548,9 +592,9 @@ class CmdChartApplet():
         """Show the about dialog"""
         about = Gtk.AboutDialog()
         about.set_program_name("Cmd Chart Applet")
-        about.set_version("1.0")
+        about.set_version("1.2")
         about.set_comments("Draw chart based on command output")
-        about.set_website("https://github.com/yourusername/cmd-chart-applet")
+        about.set_website("https://github.com/zhum/cmd-chart-applet")
         about.set_authors(["Sergey Zhumatiy <sergzhum@gmail.com>"])
         about.run()
         about.destroy()
@@ -563,7 +607,8 @@ class CmdChartApplet():
             # Execute the command
             output = self.execute_command()
 
-            # Set the raw command output as a tooltip so you can see the full text on hover
+            # Set the raw command output as a tooltip so
+            # you can see the full text on hover
             if output:
                 # You can format it with a header if you like
                 self.applet.set_tooltip_text(f"Out:\n{output}")
@@ -715,7 +760,8 @@ class CmdChartApplet():
                             self.graph_max = float(values[3])
                         # Update history
                         self.history.append(value)
-                        if len(self.history) > self.settings.get_int("history-len"):
+                        hlen = self.settings.get_int("history-len")
+                        if len(self.history) > hlen:
                             self.history.pop(0)
                         # Persist history
                         with open(self.historyFilePath, "a+") as f:
@@ -728,7 +774,10 @@ class CmdChartApplet():
                         tb_info = traceback.extract_tb(exc_traceback)[-1]
                         lineno = tb_info[1]
                         filename = tb_info[0]
-                        self.log(f"Failed to parse GR token: {e} at {lineno}/{filename}", True)
+                        self.log(
+                            (f"Failed to parse GR token: {e} at "
+                             f"{lineno}/{filename}"),
+                            True)
 
                 i += 1
 
@@ -750,8 +799,14 @@ class CmdChartApplet():
         draw_h = height - (boundary*2)
 
         step = width / (len(self.history) - 1)
-        min_val = self.graph_min if self.graph_min is not None else min(self.history)
-        max_val = self.graph_max if self.graph_max is not None else max(self.history)
+        if self.graph_min is not None:
+            min_val = self.graph_min
+        else:
+            min_val = min(self.history)
+        if self.graph_max is not None:
+            max_val = self.graph_max
+        else:
+            max_val = max(self.history)
         range_val = max_val - min_val or 1
 
         points = []
@@ -766,8 +821,8 @@ class CmdChartApplet():
         cr.move_to(points[0][0], points[0][1])
         for x, y in points[1:]:
             cr.line_to(x, y)
-        cr.line_to(width, height) # Down to bottom-right
-        cr.line_to(0, height)     # Across to bottom-left
+        cr.line_to(width, height)  # Down to bottom-right
+        cr.line_to(0, height)      # Across to bottom-left
         cr.close_path()
         cr.fill()
 
