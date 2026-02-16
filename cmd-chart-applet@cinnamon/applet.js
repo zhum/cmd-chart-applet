@@ -294,13 +294,9 @@ CmdChartApplet.prototype = {
                             this.history.shift();
                         }
                         let historyText = this.history.join('\n');
-                        // append value to the file, do not overwrite it AI!
                         GLib.file_set_contents(this.historyFilePath, historyText);
                         this.graphColor = color;
                     }
-                }
-                else {
-                    global.log("Bad GR format: '"+token+"'");
                 }
             }
         }
@@ -426,8 +422,9 @@ CmdChartApplet.prototype = {
                     }
                     if (barX + elWidth + overflowIndicatorWidth > width) {
                         if (this.verboseLogging) {
-                            global.log(
-                                "CMD Chart Applet: Out of space for bar line " + l + 
+                            cr.set_source_rgba(1, 0, 0, 1);
+                            cr.move_to(10, 10);
+                            cr.show_text("Out of space for bar line " + l + 
                                 "element " + i + "/" + this.chartElements.length);
                         }
                         hasOverflow = true;
@@ -576,7 +573,7 @@ CmdChartApplet.prototype = {
         let textX = Math.min(x + 4, width - 15);
 
         let fontColor = this.parseRGBAColor(this.fontColor || "rgba(255, 255, 255, 1.0)");
-        cr.setSourceRGBA(fontColor.r, fontColor.g, fontColor.b, 0.6);
+        cr.setSourceRGBA(fontColor.r, fontColor.g, fontColor.b, fontColor.a);
         cr.moveTo(textX, textY);
         cr.showText(indicator);
     },
